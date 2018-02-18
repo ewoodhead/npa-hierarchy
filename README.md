@@ -40,12 +40,12 @@ $ rlwrap sbcl --noinform --load quicklisp.lisp
 * (quicklisp-quickstart:install)
 * (ql:add-to-init-file)
 ```
-and type `y` to confirm that you want to edit the init file when it asks. Among other things, this should create a `quicklisp/` directory in your home directory. Download npa-hierarchy into the `local-projects/` subdirectory:
+and type `y` to confirm that you are OK with it editing the init file when it asks. Among other things, this should create a `quicklisp/` directory in your home directory. Download npa-hierarchy into the `local-projects/` subdirectory:
 ```
 $ cd ~/quicklisp/local-projects/
 $ git clone https://github.com/ewoodhead/npa-hierarchy
 ```
-At this point you should be able to use Quicklisp to load the npa-hierarchy library and use it. A simple test session maximising CHSH should look something like this:
+(Or download it wherever you like and copy it to ~/quicklisp/projects or create a symlink there.) At this point you should be able to use Quicklisp to load the npa-hierarchy library, which will pull in a few other libraries it depends on. A simple test session maximising CHSH should look something like this:
 ```
 $ rlwrap sbcl --noinform
 * (ql:quickload :npa-hierarchy)
@@ -70,8 +70,12 @@ It is possible to start an interactive Lisp session from the terminal (as illust
 ```
 $ cp ~/quicklisp/local-projects/npa-hierarchy/.emacs ~
 ```
-Then:
-- Start Emacs (install it if needed).
+You should edit the line in this file
+```
+      '((sbcl ("/usr/bin/sbcl" "--dynamic-space-size" "16384"))))
+```
+if SBCL is located somewhere other than /usr/bin/ (do `which sbcl` in a terminal if you're not sure where it is) Then:
+- Start Emacs (install it if needed, e.g. `aptitude install emacs`).
 - Do `M-x slime` to start SLIME. This means press whatever Emacs considers the "meta" key and 'x' at the same time, then type "slime" and press enter.
 - Enter one of `(ql:quickload :npa-hierarchy)`, `(asdf:load-system :npa-hierarchy)`, or `(require :npa-hierarchy)` to load the npa-hierarchy library. You need to use `ql:quickload` the first time you load the npa-hierarchy library (or after an update) in order to pull in a few dependencies off the internet; after this it doesn't matter which you use.
 - Either type `(in-package :npa-user)` or do `C-c M-p npa-user` to switch to the npa-user working package.
@@ -263,6 +267,26 @@ PDOPT
 NPA-USER> (+ 1 (sqrt (/ 11.0 3)))
 2.914854215512676
 ```
+
+Finally, you may just want to export a problem without running SDPA on it, for instance to run on a more powerful machine. You can accomplish this by calling the `export-to-file` function, e.g.
+```
+(export-to-file
+ "i3322_lvl5.dat-s"
+ (problem
+  (maximise A1 + A2 + B1 + B2 - (A1 + A2) (B1 + B2)
+            + A3 (B1 - B2) + (A1 - A2) B3)
+  (level 5)))
+```
+You can then run SDPA on the output file in a terminal, e.g. with
+```
+$ sdpa -ds i3322_lvl5.dat-s -o i3322_lvl5.out -pt 0
+```
+The output file contains the comment lines
+```
+*Offset = 8
+*Maximise = T
+```
+The format of the SDP passed to SDPA is a minimisation problem and the constant part (the coefficient multiplied by the identity) is ignored. The two comment lines mean we need to add 8 to the primal and dual solutions returned by SDPA and then flip their signs in order to get the actual solution to the problem. The `problem` macro processes a problem in the same format as `solve-problem` and returns an object representing the NPA relaxation. (In fact, `(solve-problem ...)` is just defined as a shorthand for `(solve (problem ...))`.)
 
 ## Some tips and possible pitfalls
 
