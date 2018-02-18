@@ -1,10 +1,12 @@
 # npa-hierarchy
 
-A small Lisp library that grew out of some code for generating the NPA-hierarchy relaxations for a class of problems I was looking at, and got carried away with. It is released under the MIT license because this is what GitHub says to do if you don't want to think about licences too much. (The word "simple" stood out.)
+An implementation of the NPA hierarchy in Common Lisp.
+
+This is a small library that grew out of some code for generating the NPA-hierarchy relaxations for a class of problems I was looking at, and got carried away with. It is released under the MIT license because this is what GitHub says to do if you don't want to think about licences too much. (The word "simple" stood out.)
 
 The library can handle problems consisting of the maximisation or minimisation of the quantum expectation value of a linear combination of projection operators (i.e., a Bell operator) subject to zero or more equality constraints on the expectation values of such operators. The number of parties, inputs, and outputs is arbitrary. It works with the [SDPA family](http://sdpa.sourceforge.net/) of semidefinite programming solvers.
 
-It is written in and for Common Lisp (currently, specifically the SBCL implementation), but you don't necessarily have to know Lisp in order to use it. It tries to use notation similar to what you might see in a research paper. For example, the code you need to type to maximise CHSH at level 1 + A B of the hierarchy is just
+It is written in Common Lisp (currently, specifically the SBCL implementation), but you don't necessarily have to know Lisp in order to use it. It tries to use notation similar to what you might see in a research paper. For example, the code you need to type to maximise CHSH at level 1 + A B of the hierarchy is just
 ```
 (solve-problem
  (maximise A1 (B1 + B2) + A2 (B1 - B2))
