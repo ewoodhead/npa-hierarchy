@@ -42,7 +42,7 @@ $ rlwrap sbcl --noinform --load quicklisp.lisp
 * (quicklisp-quickstart:install)
 * (ql:add-to-init-file)
 ```
-and type `y` to confirm that you are OK with it editing the init file when it asks. Among other things, this should create a `quicklisp/` directory in your home directory. Download npa-hierarchy into the `local-projects/` subdirectory:
+and type `y` to confirm that you are OK with it editing the init file when it asks. Among other things, this should create a quicklisp/ directory in your home directory. Download npa-hierarchy into the local-projects/ subdirectory:
 ```
 $ cd ~/quicklisp/local-projects/
 $ git clone https://github.com/ewoodhead/npa-hierarchy
