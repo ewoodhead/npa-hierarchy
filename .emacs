@@ -63,13 +63,7 @@
 ;;; SLIME
 
 (setq slime-lisp-implementations
-      '((sbcl ("/usr/bin/sbcl" "--dynamic-space-size" "16384"))
-        (clisp ("/usr/bin/clisp" "-i" "~/.clisprc.lisp"))
-        (ccl ("/opt/ccl/lx86cl64"))
-        (ccl32 ("/opt/ccl/lx86cl"))
-        (cmucl ("/opt/bin/cmucl"))
-        (abcl ("/usr/bin/java" "-jar" "/opt/abcl/abcl-1.5.0/abcl.jar"))
-        (ecl ("/usr/bin/ecl"))))
+      '((sbcl ("/usr/bin/sbcl" "--dynamic-space-size" "16384"))))
 
 (add-hook 'lisp-mode-hook
           (lambda ()
@@ -85,7 +79,7 @@
 (eval-after-load "auto-complete" '(add-to-list 'ac-modes 'slime-repl-mode))
 
 ;; Common Lisp Hyperspec lookup
-(load "~/quicklisp/clhs-use-local.el" t)
+;(load "~/quicklisp/clhs-use-local.el" t)
 
 ;; Indent preferences for the Lisp LOOP macro.
 (setq lisp-simple-loop-indentation 2
