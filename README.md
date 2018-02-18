@@ -75,7 +75,7 @@ If SBCL is located somewhere other than /usr/bin/ then edit the line
       '((sbcl ("/usr/bin/sbcl" "--dynamic-space-size" "16384"))))
 ```
 in the .emacs file accordingly (run `which sbcl` in a terminal if you're not sure). Then:
-- Start Emacs (install it if needed, e.g. `aptitude install emacs`).
+- Start Emacs (install it if needed, e.g. `sudo aptitude install emacs`).
 - Do `M-x slime` to start SLIME. This means press whatever Emacs considers the "meta" key and 'x' at the same time, then type "slime" and press enter.
 - Enter one of `(ql:quickload :npa-hierarchy)`, `(asdf:load-system :npa-hierarchy)`, or `(require :npa-hierarchy)` to load the npa-hierarchy library. You need to use `ql:quickload` the first time you load the npa-hierarchy library (or after an update) in order to pull in a few dependencies off the internet; after this it doesn't matter which you use.
 - Either enter `(in-package :npa-user)` or do `C-c M-p npa-user` to switch to the npa-user working package.
