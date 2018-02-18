@@ -320,6 +320,6 @@ SBCL runs code in the file .sbclrc in your home directory on startup. You can pu
 
 ### If you need/want to learn Lisp
 
-As stated above, you don't necessarily need to know Lisp in order to use this library, particularly if you are just using the `solve-problem` macro. But if you find you'd like or you need to learn a bit of Lisp, a good introduction is [Practical Common Lisp](http://www.gigamonkeys.com/book/) by Peter Seibel. The entire book is freely readable on the author's website. It can be considered about K&R level: it assumes you already know how to program (you already know what variables and functions and loops are) and you just need to learn the specifics of how things are done in Lisp.
+As stated above, you don't necessarily need to know Lisp in order to use this library, particularly if you are just using the `solve-problem` macro. But if you find you'd like or you need to learn a bit of Lisp, a good introduction is [Practical Common Lisp](http://www.gigamonkeys.com/book/) by Peter Seibel. The entire book is freely readable on the author's website. It is about K&R level: it assumes you already know how to program (you already know what variables and functions and loops are) and you just need to learn the specifics of how things are done in Lisp.
 
 There's also a [Learn X in Y minutes](https://learnxinyminutes.com/docs/common-lisp/) page on Common Lisp for a very quick overview.
