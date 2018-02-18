@@ -140,11 +140,6 @@ larger numbers on successive elements in LIST."
       (setf prev list
             list (rest list)))))
 
-(defun delete-next-cell (cons)
-  "Set CDR of CONS to CDDR of CONS"
-  (setf (cdr cons) (cddr cons))
-  cons)
-
 (defun delete-cell (list tail before-tail)
   "Return LIST after removing the cons cell at the head of TAIL. TAIL and
 BEFORE-TAIL are assumed to be tails of LIST or NIL of the kind returned by
