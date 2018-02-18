@@ -15,7 +15,7 @@ Assuming everything you need is properly installed and loaded, running this expr
 - write the corresponding input file for SDPA,
 - call SDPA on it,
 - extract the solution, and
-- return the primal and dual solutions and an SDPA status indicator (like "PDOPT" or "PDFEAS").
+- return the primal and dual solutions and an SDPA status indicator (usually "PDOPT" or "PDFEAS", if everything went OK).
 
 It is inferred from the symbols appearing in the problem (`A1`, `A2`, `B1`, and `B2`) that there are in this case two parties each with two binary-outcome measurements.
 
@@ -74,7 +74,7 @@ You should edit the line in this file
 ```
       '((sbcl ("/usr/bin/sbcl" "--dynamic-space-size" "16384"))))
 ```
-if SBCL is located somewhere other than /usr/bin/ (do `which sbcl` in a terminal if you're not sure where it is) Then:
+if SBCL is located somewhere other than /usr/bin/ (do `which sbcl` in a terminal if you're not sure where it is). Then:
 - Start Emacs (install it if needed, e.g. `aptitude install emacs`).
 - Do `M-x slime` to start SLIME. This means press whatever Emacs considers the "meta" key and 'x' at the same time, then type "slime" and press enter.
 - Enter one of `(ql:quickload :npa-hierarchy)`, `(asdf:load-system :npa-hierarchy)`, or `(require :npa-hierarchy)` to load the npa-hierarchy library. You need to use `ql:quickload` the first time you load the npa-hierarchy library (or after an update) in order to pull in a few dependencies off the internet; after this it doesn't matter which you use.
@@ -315,10 +315,9 @@ SBCL runs code in the file .sbclrc in your home directory on startup. You can pu
 (asdf:load-system :npa-hierarchy)
 (in-package :npa-user)
 ```
-to the end of the .sbclrc file so that you don't have to do these things every time you start Lisp.
 
 ### If you need/want to learn Lisp
 
-As mentioned, you don't necessarily need to know Lisp in order to use this library, particularly if you are just using the `solve-problem` macro. But if you feel you would like or need to learn a bit of Lisp, a good introduction is [Practical Common Lisp](http://www.gigamonkeys.com/book/) by Peter Seibel. The entire book is freely readable on the author's website. It can be considered about K&R level: it assumes you already know how to program (you already know what variables and functions and loops are) and you just need to learn the specifics of how things are done in Lisp.
+As stated above, you don't necessarily need to know Lisp in order to use this library, particularly if you are just using the `solve-problem` macro. But if you find you'd like or you need to learn a bit of Lisp, a good introduction is [Practical Common Lisp](http://www.gigamonkeys.com/book/) by Peter Seibel. The entire book is freely readable on the author's website. It can be considered about K&R level: it assumes you already know how to program (you already know what variables and functions and loops are) and you just need to learn the specifics of how things are done in Lisp.
 
 There's also a [Learn X in Y minutes](https://learnxinyminutes.com/docs/common-lisp/) page on Common Lisp for a very quick overview.
