@@ -70,15 +70,15 @@ It is possible to start an interactive Lisp session from the terminal (as illust
 ```
 $ cp ~/quicklisp/local-projects/npa-hierarchy/.emacs ~
 ```
-You should edit the line in this file
+If SBCL is located somewhere other than /usr/bin/ then edit the line
 ```
       '((sbcl ("/usr/bin/sbcl" "--dynamic-space-size" "16384"))))
 ```
-if SBCL is located somewhere other than /usr/bin/ (do `which sbcl` in a terminal if you're not sure where it is). Then:
+in the .emacs file accordingly (run `which sbcl` in a terminal if you're not sure). Then:
 - Start Emacs (install it if needed, e.g. `aptitude install emacs`).
 - Do `M-x slime` to start SLIME. This means press whatever Emacs considers the "meta" key and 'x' at the same time, then type "slime" and press enter.
 - Enter one of `(ql:quickload :npa-hierarchy)`, `(asdf:load-system :npa-hierarchy)`, or `(require :npa-hierarchy)` to load the npa-hierarchy library. You need to use `ql:quickload` the first time you load the npa-hierarchy library (or after an update) in order to pull in a few dependencies off the internet; after this it doesn't matter which you use.
-- Either type `(in-package :npa-user)` or do `C-c M-p npa-user` to switch to the npa-user working package.
+- Either enter `(in-package :npa-user)` or do `C-c M-p npa-user` to switch to the npa-user working package.
 
 In key chords like C-c and M-x, 'C' and 'M' mean you should press whatever Emacs considers the "Control" or "Meta" key along with the key that follows. "Control" and "Meta" are usually Ctrl and Alt (they might be bound to the Command and/or Option keys if you are using a Mac). So on most installations, M-x means hold down the 'Alt' key while pressing the 'x' key.
 
