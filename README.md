@@ -270,7 +270,7 @@ NPA-USER> (+ 1 (sqrt (/ 11.0 3)))
 2.914854215512676
 ```
 
-Finally, you may just want to export a problem without running SDPA on it, for instance to run on a more powerful machine. You can accomplish this by calling the `export-to-file` function, e.g.
+You may just want to export a problem without running SDPA on it, for instance to run on a more powerful machine. You can accomplish this by calling the `export-to-file` function, e.g.
 ```
 (export-to-file
  "i3322_lvl5.dat-s"
@@ -289,6 +289,22 @@ The output file contains the comment lines
 *Maximise = T
 ```
 The format of the SDP passed to SDPA is a minimisation problem and the constant part (the coefficient multiplied by the identity) is ignored. The two comment lines mean we need to add 8 to the primal and dual solutions returned by SDPA and then flip their signs in order to get the actual solution to the problem. The `problem` macro processes a problem in the same format as `solve-problem` and returns an object representing the NPA relaxation. (In fact, `(solve-problem ...)` is just defined as a shorthand for `(solve (problem ...))`.)
+
+Lisp is not Matlab, but there are ways to get a plot done, e.g. using a library to call out to gnuplot. This code snippet uses Quicklisp to load the vgplot library and uses it to plot the local guessing probability vs. CHSH violation:
+```
+(ql:quickload :vgplot)
+
+(defun pguess (s)
+  (solve-problem
+   (maximise A1/1)
+   (subject-to (A1 (B1 + B2) + A2 (B1 - B2) = s))
+   (level 1 + A B)))
+
+(let* ((s (vgplot:range (sqrt 8.0) 2 -0.005))
+       (p (map 'vector #'pguess s)))
+  (vgplot:plot s p))
+```
+Though if you are generating a plot to include in a document, you will get a nicer result by printing the numbers to a text file and using [PGFPlots](http://pgfplots.sourceforge.net/) to do the actual plotting.
 
 ## Some tips and possible pitfalls
 
