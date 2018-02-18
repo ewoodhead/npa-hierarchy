@@ -47,7 +47,7 @@ and type `y` to confirm that you are OK with it editing the init file when it as
 $ cd ~/quicklisp/local-projects/
 $ git clone https://github.com/ewoodhead/npa-hierarchy
 ```
-(Or download it wherever you like and copy it to ~/quicklisp/projects or create a symlink there.) At this point you should be able to use Quicklisp to load the npa-hierarchy library, which will pull in a few other libraries it depends on. A simple test session, starting SBCL in a terminal, loading the library, and maximising CHSH should look something like this:
+(Or download it wherever you like and copy it to ~/quicklisp/local-projects or create a symlink there.) At this point you should be able to use Quicklisp to load the npa-hierarchy library, which will pull in a few other libraries it depends on. A simple test session, starting SBCL in a terminal, loading the library, and maximising CHSH should look something like this:
 ```
 $ rlwrap sbcl --noinform
 * (ql:quickload :npa-hierarchy)
