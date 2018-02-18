@@ -45,11 +45,11 @@ and type `y` to confirm that you are OK with it editing the init file when it as
 $ cd ~/quicklisp/local-projects/
 $ git clone https://github.com/ewoodhead/npa-hierarchy
 ```
-(Or download it wherever you like and copy it to ~/quicklisp/projects or create a symlink there.) At this point you should be able to use Quicklisp to load the npa-hierarchy library, which will pull in a few other libraries it depends on. A simple test session maximising CHSH should look something like this:
+(Or download it wherever you like and copy it to ~/quicklisp/projects or create a symlink there.) At this point you should be able to use Quicklisp to load the npa-hierarchy library, which will pull in a few other libraries it depends on. A simple test session, starting SBCL in a terminal, loading the library, and maximising CHSH should look something like this:
 ```
 $ rlwrap sbcl --noinform
 * (ql:quickload :npa-hierarchy)
-;; Info about packages being loaded snipped.
+;; Info about all the packages being loaded omitted.
 * (in-package :npa-user)
 
 #<PACKAGE "NPA-USER">
@@ -99,7 +99,7 @@ Emacs is probably the most used general-purpose editor for developing Lisp code,
 
 ## Examples
 
-The simplest way to use the library is to use the `solve-problem` macro. The basic invocation is illustrated by the example for CHSH given above. Internally, the library uses the Collins-Gisin projection. Projectors can be written like `A1\|1` or `A1/1`. (The identity can be written `Id` but it can usually be omitted: numbers are usually treated as themselves multiplied by the identity.) For example, you can maximise the CH74 form of CHSH with
+The simplest way to use the library is to use the `solve-problem` macro. The basic invocation is illustrated by the example for CHSH given above. The library uses the Collins-Gisin projection. Projectors can be written like `A1\|1` or `A1/1`. The letter(s) indicate the party, the first number is the output, and the second number (after the '/') is the input. (The identity can be written `Id` but it can usually be omitted: numbers are usually treated as themselves multiplied by the identity.) For example, you can maximise the CH74 form of CHSH with
 ```
 (solve-problem
  (maximise A1/1 B1/1 + A1/1 B1/2 + A1/2 B1/1 - A1/2 B1/2
