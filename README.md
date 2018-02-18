@@ -121,7 +121,7 @@ The general format understood by the `solve-problem` macro is
 (solve-problem
  (*imise POLYNOMIAL)
  (subject-to EQUALITY-CONSTRAINTS...)
- (where LOCAL-VARIABLE-BINDINGS)
+ (where LOCAL-VARIABLE-BINDINGS...)
  (level LEVEL)
 ```
 Each of the forms should be surrounded with parentheses, as shown. The `*imise` and `level` forms are required. The other two are optional. An example using all of them is
