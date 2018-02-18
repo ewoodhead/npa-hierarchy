@@ -86,7 +86,7 @@ In key chords like C-c and M-x, 'C' and 'M' mean you should press whatever Emacs
 
 Once SLIME is running you can give it Lisp expressions to evaluate. Some useful Emacs and SLIME commands:
 - C-x 1 to make the current window take up all of the Emacs frame. C-x 2 to split horizontally.
-- C-<up> and C-<down> (or M-p and M-n) cycle through the history of previously entered expressions.
+- C-\<up\> and C-\<down\> (or M-p and M-n) cycle through the history of previously entered expressions.
 - C-a and C-e go to the beginning and end of the current line.
 - C-k deletes everything on the current line after the cursor.
 - In a Lisp file, C-c C-c compiles the expression containing the cursor.
