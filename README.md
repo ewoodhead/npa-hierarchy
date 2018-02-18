@@ -4,7 +4,7 @@ A small Lisp library that grew out of some code for generating the NPA-hierarchy
 
 The library can handle problems consisting of the maximisation or minimisation of the quantum expectation value of a linear combination of projection operators (i.e., a Bell operator) subject to zero or more equality constraints on the expectation values of such operators. The number of parties, inputs, and outputs is arbitrary. It works with the [SDPA family](http://sdpa.sourceforge.net/) of semidefinite programming solvers.
 
-It is written in and for Common Lisp (currently, specifically the SBCL implementation), but you don't necessarily have to know Lisp in order to use it. It tries to use notation similar to what one would use in a research paper. For example, the code you need to type to maximise CHSH at level 1 + A B of the hierarchy is just
+It is written in and for Common Lisp (currently, specifically the SBCL implementation), but you don't necessarily have to know Lisp in order to use it. It tries to use notation similar to what you might see in a research paper. For example, the code you need to type to maximise CHSH at level 1 + A B of the hierarchy is just
 ```
 (solve-problem
  (maximise A1 (B1 + B2) + A2 (B1 - B2))
