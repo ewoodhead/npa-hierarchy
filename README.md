@@ -4,7 +4,7 @@ An implementation of the NPA hierarchy in Common Lisp.
 
 This is a small library that grew out of some code for generating the NPA-hierarchy relaxations for a class of problems I was looking at, and got carried away with. It is released under the MIT license because this is what GitHub says to do if you don't want to think about licences too much. (The word "simple" stood out.)
 
-The library can handle problems consisting of the maximisation or minimisation of the quantum expectation value of a linear combination of projection operators (i.e., a Bell operator) subject to zero or more equality constraints on the expectation values of such operators. The number of parties, inputs, and outputs is arbitrary. It works with the [SDPA family](http://sdpa.sourceforge.net/) of semidefinite programming solvers.
+The library can handle problems consisting of the maximisation or minimisation of the quantum expectation value of a linear combination of projection operators (i.e., a Bell operator) subject to zero or more equality constraints on the expectation values of such operators. A negative number of constraints is not supported. The number of parties, inputs, and outputs is arbitrary. It works with the [SDPA family](http://sdpa.sourceforge.net/) of semidefinite programming solvers.
 
 It is written in Common Lisp (currently, specifically the SBCL implementation), but you don't necessarily have to know Lisp in order to use it. It tries to use notation similar to what you might see in a research paper. For example, the code you need to type to maximise CHSH at level 1 + A B of the hierarchy is just
 ```
@@ -24,6 +24,11 @@ It is inferred from the symbols appearing in the problem (`A1`, `A2`, `B1`, and 
 Some more examples of its use are given below.
 
 ## Setup
+
+The following installation instructions are quite detailed since I assume most people who might consider using this library are not already familiar with Lisp. The abridged version is:
+- You will need SDPA, SBCL, and [Quicklisp](https://www.quicklisp.org/beta/) installed.
+- You install npa-hierarchy by putting the project directory somewhere where Quicklisp can find it, like ~/common-lisp/ or ~/quicklisp/local-projects/, and doing `(ql:quickload :npa-hierarchy)` to load it. This will pull in dependencies in the process.
+- It is recommended to run Lisp in an environment that supports it, such as Emacs/SLIME. Running Lisp in a plain terminal is not a fun experience.
 
 ### Install SDPA and SBCL
 
@@ -66,7 +71,7 @@ PDFEAS
 ```
 Running`(in-package :npa-user)` puts you in a working package that imports the most important symbols from other packages in the library, so you don't need to prefix them with their package names (so e.g. you can type `solve-problem` instead of `npa-hierarchy:solve-problem`).
 
-### Configure Emacs (optional)
+### Configure Emacs (optional but recommended)
 
 It is possible to start an interactive Lisp session from the terminal (as illustrated above). However, you can get a much nicer environment by running Lisp from Emacs via the SLIME mode. If you don't already use Emacs, a simple way to get started is to copy the sample .emacs file included with the project to your home directory:
 ```
@@ -90,6 +95,7 @@ Once SLIME is running you can give it Lisp expressions to evaluate. Some useful 
 - C-a and C-e go to the beginning and end of the current line.
 - C-k deletes everything on the current line after the cursor.
 - In a Lisp file, C-c C-c compiles the expression containing the cursor.
+- If you find yourself in the Lisp/SLIME debugger following an error, you can get out of it by pressing q.
 - C-g cancels a partially-entered Emacs key chord or command.
 - C-h t starts the Emacs tutorial.
  
@@ -100,6 +106,8 @@ Emacs is probably the most used general-purpose editor for developing Lisp code,
 - https://www.cliki.net/Development
 
 ## Examples
+
+The following examples assume you have loaded the npa-hierarchy library and are in the npa-user working package.
 
 The simplest way to use the library is to use the `solve-problem` macro. The basic invocation is illustrated by the example for CHSH given above. The library uses the Collins-Gisin projection. Projectors can be written like `A1\|1` or `A1/1`. The letter(s) indicate the party, the first number is the output, and the second number (after the '/') is the input. (The identity can be written `Id` but it can usually be omitted: numbers are usually treated as themselves multiplied by the identity.) For example, you can maximise the CH74 form of CHSH with
 ```
@@ -114,7 +122,7 @@ NPA-USER> (px A1 (B1 + B2) + A2 (B1 - B2))
 #<POLYNOMIAL 2 Id - 4 A1|1 - 4 B1|1 + 4 A1|1 B1|1 + 4 A1|1 B1|2 + 4 A1|2 B1|1
              - 4 A1|2 B1|2>
 ```
-The object returned can be stored in a variable, passed to a function, etc. (If you are familiar with Python: polynomials are represented interally as instances of an OOP-style class (though a rather trivial one, since it has only one slot containing a hash table mapping monomials to coefficients). The print representation shown is determined by Lisp's equivalent of defining a specialised `__repr__` method.) The order in which commuting operators appear does not matter. `B1/1 A1/1` is the same as `A1/1 B1/1`. The case also does not matter. The Lisp reader converts all variable and operator names (symbols) to uppercase by default.
+The order in which commuting operators appear does not matter. `B1/1 A1/1` is the same as `A1/1 B1/1`. The case also does not matter. The Lisp reader converts all variable and operator names (symbols) to uppercase by default.
 
 The general format understood by the `solve-problem` macro is
 ```
@@ -202,7 +210,7 @@ NPA-USER> (maximise (cglmp 5) '(1 + A B))
 PDFEAS
 ```
 
-Operator expressions can include variables, which may be defined elsewhere or arguments to a function, as long as the variable names won't be confused for a dichotomic operator or projector. A call to the `solve-problem` macro is itself an expression (that returns three values). So a convienient way to study a family of problems could be to wrap it in a function definition, e.g.
+Operator expressions can include variables, which may be defined elsewhere or arguments to a function, as long as the variable names won't be confused for a dichotomic operator or projector. An invocation of the `solve-problem` macro is itself an expression that returns three values. So a convienient way to study a family of problems could be to wrap it in a function definition, e.g.
 ```
 (defun tilted-chsh (b a)
   (solve-problem
@@ -313,7 +321,7 @@ Though if you are generating a plot to include in a document, you will get a nic
 A lot of the whitespace in the examples above is necessary:
 - You generally need space around the arithmetic operators like `+` and `-`. The reason for this is that, unlike most programming languages, these are valid characters in variable names. `B1+B2` is a perfectly valid five-character variable name as far as Lisp is concerned.
 - Use a space to separate operators that are being multiplied. `A1 B1` is the product of `A1` and `B1`. `A1B1` is an unrelated variable with a four-character name that Lisp will expect is defined somewhere.
-- In levels like "1 + A B", you also need spaces separating the different parties. `A B` refers to parties 0 and 1. `AB` instead refers to party 27.
+- In levels like "1 + A B", you also need spaces separating the different parties. `A B` means parties 0 and 1. `AB` means party 27.
 
 Where whitespace is needed it doesn't matter what kind (spaces, tabs, or newlines).
 
@@ -334,8 +342,8 @@ SBCL runs code in the file .sbclrc in your home directory on startup. You can pu
 (in-package :npa-user)
 ```
 
-### If you need/want to learn Lisp
+### Some Lisp resources
 
-As stated above, you don't necessarily need to know Lisp in order to use this library, particularly if you are just using the `solve-problem` macro. But if you find you'd like or you need to learn a bit of Lisp, a good introduction is [Practical Common Lisp](http://www.gigamonkeys.com/book/) by Peter Seibel. The entire book is freely readable on the author's website. It is about K&R level: it assumes you already know how to program (you already know what variables and functions and loops are) and you just need to learn the specifics of how things are done in Lisp.
+As stated above, you don't kave to know Lisp in order to use this library, particularly if you are just using the `solve-problem` macro. But if you find you'd like or you need to learn a bit of Lisp, a good introduction is [Practical Common Lisp](http://www.gigamonkeys.com/book/) by Peter Seibel. The entire book is freely readable on the author's website. It is about K&R level: it assumes you already know how to program and you just need to learn the specifics of how things are done in Lisp.
 
-There's also a [Learn X in Y minutes](https://learnxinyminutes.com/docs/common-lisp/) page on Common Lisp for a very quick overview.
+There's a [Learn X in Y minutes](https://learnxinyminutes.com/docs/common-lisp/) page on Common Lisp for a very quick overview. A comparison with Python can also be found [here](https://norvig.com/python-lisp.html).
