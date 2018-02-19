@@ -348,8 +348,8 @@ SBCL runs code in the file .sbclrc in your home directory on startup. You can pu
 As stated above, you don't kave to know Lisp in order to use this library, particularly if you are just using the `solve-problem` macro. But if you find you'd like or you need to learn a bit of Lisp, a good introduction is [Practical Common Lisp](http://www.gigamonkeys.com/book/) by Peter Seibel. The entire book is freely readable on the author's website. It is about K&R level: it assumes you already know how to program and you just need to learn the specifics of how things are done in Lisp.
 
 These resources may also be useful:
-- [Learn X in Y minutes](https://learnxinyminutes.com/docs/common-lisp/) for Common Lisp.
-- [The Common Lisp Cookbook](http://cl-cookbook.sourceforge.net/).
+- The [Common Lisp Cookbook](http://cl-cookbook.sourceforge.net/).
 - The [Common Lisp HyperSpec](http://www.lispworks.com/documentation/HyperSpec/Front/index.htm).
 - A PDF of the ANSI Common Lisp Standard draft can be obtained from [here](http://cvberry.com/tech_writings/notes/common_lisp_standard_draft.html).
+- [Learn X in Y minutes](https://learnxinyminutes.com/docs/common-lisp/) for Common Lisp.
 - There's a comparison with Python and translation guide [here](https://norvig.com/python-lisp.html).
