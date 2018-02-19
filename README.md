@@ -195,7 +195,7 @@ There are a few functions included that return families of Bell operators (curre
  (maximise (cglmp 3))
  (level 1 + A B))
 ```
-In this case an important feature of the `solve-problem` macro, namely processing an expression written in terms of operators like `A1` or `A1/1`, is not used, and we could just as well call the `maximise` function:
+In this case an important feature of the `solve-problem` macro, namely processing an expression written in terms of operators like `A1` or `A1/1`, is not used, and we could just as well call the simpler `maximise` function:
 ```
 NPA-USER> (maximise (cglmp 3) '(1 + A B))
 2.9148541089409035
@@ -211,7 +211,7 @@ NPA-USER> (maximise (cglmp 5) '(1 + A B))
 PDFEAS
 ```
 
-Operator expressions can include variables, which may be defined elsewhere or arguments to a function, as long as the variable names won't be confused for a dichotomic operator or projector. An invocation of the `solve-problem` macro is itself an expression that returns three values. So a convienient way to study a family of problems could be to wrap it in a function definition, e.g.
+Operator expressions can include variables, which may be defined elsewhere or function parameters, as long as the variable names won't be confused for a dichotomic operator or projector. An invocation of the `solve-problem` macro is itself an expression that returns three values. So a convienient way to study a family of problems could be to wrap it in a function definition, e.g.
 ```
 (defun tilted-chsh (b a)
   (solve-problem
@@ -326,9 +326,9 @@ A lot of the whitespace in the examples above is necessary:
 
 Where whitespace is needed it doesn't matter what kind (spaces, tabs, or newlines).
 
-### Single-precision is the default
+### Floating-point precision
 
-Lisp has single- and double-precision floating-point numbers. Unlike most other languages, decimal numbers like `1.0` are read as single precision by default. If this annoys you, you can change this by evaluating
+Lisp has single- and double-precision floating-point numbers. Unlike most programming languages, decimal numbers like `1.0` are read as single precision by default. If this annoys you, you can change this by evaluating
 ```
 (setf *read-default-float-format* 'double-float)
 ```
