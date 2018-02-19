@@ -28,7 +28,7 @@ Some more examples of its use are given below.
 The following installation instructions are quite detailed since I assume most people who might consider using this library are not already familiar with Lisp. The abridged version is:
 - You will need SDPA, SBCL, and [Quicklisp](https://www.quicklisp.org/beta/) installed.
 - You install npa-hierarchy by putting the project directory somewhere where Quicklisp can find it, like ~/common-lisp/ or ~/quicklisp/local-projects/, and doing `(ql:quickload :npa-hierarchy)` to load it. This will pull in dependencies in the process.
-- It is recommended to run Lisp in an environment that supports it, such as Emacs/SLIME. Running Lisp in a plain terminal is not a fun experience.
+- It is recommended to run Lisp in an environment that supports it, such as Emacs/SLIME. Inputting multi-line Lisp expressions in a plain terminal is not a fun experience.
 
 ### Install SDPA and SBCL
 
@@ -96,6 +96,7 @@ Once SLIME is running you can give it Lisp expressions to evaluate. Some useful 
 - C-k deletes everything on the current line after the cursor.
 - In a Lisp file, C-c C-c compiles the expression containing the cursor.
 - If you find yourself in the Lisp/SLIME debugger following an error, you can get out of it by pressing q.
+- Cut, copy, and paste are C-w, M-w, and C-y, not C-x, C-c, and C-v.
 - C-g cancels a partially-entered Emacs key chord or command.
 - C-h t starts the Emacs tutorial.
  
@@ -346,4 +347,9 @@ SBCL runs code in the file .sbclrc in your home directory on startup. You can pu
 
 As stated above, you don't kave to know Lisp in order to use this library, particularly if you are just using the `solve-problem` macro. But if you find you'd like or you need to learn a bit of Lisp, a good introduction is [Practical Common Lisp](http://www.gigamonkeys.com/book/) by Peter Seibel. The entire book is freely readable on the author's website. It is about K&R level: it assumes you already know how to program and you just need to learn the specifics of how things are done in Lisp.
 
-There's a [Learn X in Y minutes](https://learnxinyminutes.com/docs/common-lisp/) page on Common Lisp for a very quick overview. A comparison with Python can also be found [here](https://norvig.com/python-lisp.html).
+These resources may also be useful:
+- [Learn X in Y minutes](https://learnxinyminutes.com/docs/common-lisp/) for Common Lisp.
+- [The Common Lisp Cookbook](http://cl-cookbook.sourceforge.net/).
+- The [Common Lisp HyperSpec](http://www.lispworks.com/documentation/HyperSpec/Front/index.htm).
+- A PDF of the ANSI Common Lisp Standard draft can be obtained from [here](http://cvberry.com/tech_writings/notes/common_lisp_standard_draft.html).
+- There's a comparison with Python and translation guide [here](https://norvig.com/python-lisp.html).
