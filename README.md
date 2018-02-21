@@ -1,6 +1,6 @@
 # npa-hierarchy
 
-An implementation of the NPA hierarchy in Common Lisp.
+An implementation of the [NPA hierarchy](https://doi.org/10.1088/1367-2630/10/7/073013) in Common Lisp.
 
 This is a small library that grew out of some code for generating the NPA-hierarchy relaxations for a class of problems I was looking at, and got carried away with. It is released under the MIT license because this is what GitHub says to do if you don't want to think about licences too much. (The word "simple" stood out.)
 
@@ -22,6 +22,10 @@ Assuming everything you need is properly installed and loaded, running this expr
 It is inferred from the symbols appearing in the problem (`A1`, `A2`, `B1`, and `B2`) that there are in this case two parties each with two binary-outcome measurements.
 
 Some more examples of its use are given below.
+
+There are other freely-available libraries that can work with the NPA hierarchy. The ones I am aware of are:
+- The Matlab toolbox [QETLAB](http://www.qetlab.com/Main_Page). The functions [`NPAHierarchy`](http://www.qetlab.com/NPAHierarchy) and [`BellInequalityMax`](http://www.qetlab.com/BellInequalityMax) can handle problems in the bipartite scenario.
+- Peter Wittek's Python library [Ncpol2sdpa](https://ncpol2sdpa.readthedocs.io/en/stable/) implements the more general NPA hierarchy as described in [Handbook on Semidefinite, Conic and Polynomial Optimization, pp. 601-634](https://doi.org/10.1007/978-1-4614-0769-0_21).
 
 ## Setup
 
@@ -52,7 +56,7 @@ and type `y` to confirm that you are OK with it editing the init file when it as
 $ cd ~/quicklisp/local-projects/
 $ git clone https://github.com/ewoodhead/npa-hierarchy
 ```
-(Or download it wherever you like and copy it to ~/quicklisp/local-projects or create a symlink there.) At this point you should be able to use Quicklisp to load the npa-hierarchy library, which will pull in a few other libraries it depends on. A simple test session, starting SBCL in a terminal, loading the library, and maximising CHSH should look something like this:
+(Or download it wherever you like and copy it to ~/quicklisp/local-projects/ or create a symlink there.) At this point you should be able to use Quicklisp to load the npa-hierarchy library, which will pull in a few other libraries it depends on. A simple test session, starting SBCL in a terminal, loading the library, and maximising CHSH should look something like this:
 ```
 $ rlwrap sbcl --noinform
 * (ql:quickload :npa-hierarchy)
@@ -69,7 +73,7 @@ $ rlwrap sbcl --noinform
 PDFEAS
 *
 ```
-Running`(in-package :npa-user)` puts you in a working package that imports the most important symbols from other packages in the library, so you don't need to prefix them with their package names (so e.g. you can type `solve-problem` instead of `npa-hierarchy:solve-problem`).
+(Press Ctrl-D to escape.) Running`(in-package :npa-user)` puts you in a working package that imports the most important symbols from other packages in the library, so you don't need to prefix them with their package names (so e.g. you can type `solve-problem` instead of `npa-hierarchy:solve-problem`).
 
 ### Configure Emacs (optional but recommended)
 
@@ -94,7 +98,7 @@ Once SLIME is running you can give it Lisp expressions to evaluate. Some useful 
 - C-\<up\> and C-\<down\> (or M-p and M-n) cycle through the history of previously entered expressions.
 - C-a and C-e go to the beginning and end of the current line.
 - C-k deletes everything on the current line after the cursor.
-- In a Lisp file, C-c C-c compiles the expression containing the cursor.
+- In a Lisp file, C-c C-c compiles the expression containing the cursor. C-x C-e evaluates the expression immediately preceding the cursor.
 - If you find yourself in the Lisp/SLIME debugger following an error, you can get out of it by pressing q.
 - Cut, copy, and paste are C-w, M-w, and C-y, not C-x, C-c, and C-v.
 - C-g cancels a partially-entered Emacs key chord or command.
@@ -319,7 +323,7 @@ Though if you are generating a plot to include in a document, you will get a nic
 
 ### Whitespace
 
-A lot of the whitespace in the examples above is necessary:
+A lot of the whitespace in the examples above is mandatory:
 - You generally need space around the arithmetic operators like `+` and `-`. The reason for this is that, unlike most programming languages, these are valid characters in variable names. `B1+B2` is a perfectly valid five-character variable name as far as Lisp is concerned.
 - Use a space to separate operators that are being multiplied. `A1 B1` is the product of `A1` and `B1`. `A1B1` is an unrelated variable with a four-character name that Lisp will expect is defined somewhere.
 - In levels like "1 + A B", you also need spaces separating the different parties. `A B` means parties 0 and 1. `AB` means party 27.
@@ -332,7 +336,7 @@ Lisp has single- and double-precision floating-point numbers. Unlike most progra
 ```
 (setf *read-default-float-format* 'double-float)
 ```
-Note that some functions (like `sin` and `cos`) will still return a single-precision result if you call them with an integer argument. Make sure to call these functions with a double-precision argument if you want a double-precision result. 
+Note that some functions (like `sin` and `cos`) will still return a single-precision result if you call them with an integer argument. Make sure to call these functions with a double-precision argument if you want a double-precision result.
 
 ### SBCL init file
 
@@ -345,7 +349,7 @@ SBCL runs code in the file .sbclrc in your home directory on startup. You can pu
 
 ### Some Lisp resources
 
-As stated above, you don't kave to know Lisp in order to use this library, particularly if you are just using the `solve-problem` macro. But if you find you'd like or you need to learn a bit of Lisp, a good introduction is [Practical Common Lisp](http://www.gigamonkeys.com/book/) by Peter Seibel. The entire book is freely readable on the author's website. It is about K&R level: it assumes you already know how to program and you just need to learn the specifics of how things are done in Lisp.
+As stated above, you don't kave to know Lisp in order to use this library, particularly if you are just using the `solve-problem` macro. But if you want or find you need to learn a bit of Lisp, a good introduction is [Practical Common Lisp](http://www.gigamonkeys.com/book/) by Peter Seibel. The entire book is freely readable on the author's website. It is about K&R level: it assumes you already know how to program and you just need to learn the specifics of how things are done in Lisp.
 
 These resources may also be useful:
 - The [Common Lisp Cookbook](http://cl-cookbook.sourceforge.net/).
