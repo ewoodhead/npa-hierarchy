@@ -40,7 +40,7 @@ If you want to use this library, you will need SDPA installed in your `$PATH` (i
 ```
 $ sudo aptitude install sdpa sbcl rlwrap
 ```
-On other Linux distributions and Unix-like systems you may need to [download SDPA](http://sdpa.sourceforge.net/download.html) and compile it from source yourself.
+On other Linux distributions and Unix-like systems you may need to [download SDPA](http://sdpa.sourceforge.net/download.html) and compile it from source yourself. Compilable versions of SDPA-DD and SDPA-QD can be found at https://github.com/denisrosset/sdpa-dd and https://github.com/denisrosset/sdpa-qd.
 
 ### Install Quicklisp and npa-hierarchy
 
@@ -357,3 +357,18 @@ These resources may also be useful:
 - A PDF of the ANSI Common Lisp Standard draft can be obtained from [here](http://cvberry.com/tech_writings/notes/common_lisp_standard_draft.html).
 - [Learn X in Y minutes](https://learnxinyminutes.com/docs/common-lisp/) for Common Lisp.
 - There's a comparison with Python and translation guide [here](https://norvig.com/python-lisp.html).
+
+
+### Some computed values
+
+These are upper bounds on the quantum expectation value of the Froissart (a.k.a. I3322) expression, up to level 5 of the hierarchy. They were computed using SDPA-DD.
+
+| Level | I3322 bound
+|:-----:| ----------------------
+|   1   | 5.5
+|   2   | 5.0037588865482327(71-96)
+|   3   | 5.003502248092139(39-45)
+|   4   | 5.00350153805590723(11-30)
+|   5   | 5.0035015380559061(08-55)
+
+At levels 2-5, the digits that are the same for the primal and dual solutions are listed, followed by their next two digits (rounded outwards) in brackets, e.g. 1.23(45-67) would mean the primal is greater than 1.2345 and the dual is less than 1.2367.
