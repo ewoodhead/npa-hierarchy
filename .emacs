@@ -65,12 +65,6 @@
 (setq slime-lisp-implementations
       '((sbcl ("/usr/bin/sbcl" "--dynamic-space-size" "16384"))))
 
-(add-hook 'lisp-mode-hook
-          (lambda ()
-            (unless (featurep 'slime)
-              (require 'slime) 
-              (normal-mode))))
-
 (eval-after-load "slime" '(slime-setup '(slime-fancy slime-banner)))
 
 ;; Autocomplete for SLIME
