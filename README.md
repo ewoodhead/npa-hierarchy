@@ -76,7 +76,7 @@ If you're using Microsoft Windows, the following procedure seems to work:
   for the sdpa.exe executable to be located in a folder in the `%PATH%`
   environment variable. SDPA should run if you type "sdpa" into a DOS prompt.
 - Download and install the Windows version of
-  (Portacle)[https://portacle.github.io/].
+  [Portacle](https://portacle.github.io/).
 - Download the npa-hierarchy library. Unzip it if necessary and copy or move
   the npa-hierarchy folder and its contents into Portacle's projects/
   subfolder. The exact location depends on where you installed Portacle.
