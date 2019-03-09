@@ -72,9 +72,10 @@ short version is:
   expressions in a plain terminal is not a fun experience.
 
 If you're using Microsoft Windows, the following procedure seems to work:
-- Download SDPA from (here)[sdpa.sourceforge.net/download.html] and arrange
-  for the sdpa.exe executable to be located in a folder in the `%PATH%`
-  environment variable. SDPA should run if you type "sdpa" into a DOS prompt.
+- Download SDPA from [here](http://sdpa.sourceforge.net/download.html) and
+  arrange for the sdpa.exe executable to be located in a folder in the
+  `%PATH%` environment variable. SDPA should run if you type "sdpa" into a
+  DOS prompt.
 - Download and install the Windows version of
   [Portacle](https://portacle.github.io/).
 - Download the npa-hierarchy library. Unzip it if necessary and copy or move
