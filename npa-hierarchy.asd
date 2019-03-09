@@ -6,7 +6,8 @@ sites, inputs, and outputs, to semidefinite programming problem relaxations.
 Works with the SDPA family of solvers."
   :author "Erik Woodhead <erik.woodhead@icfo.eu>"
   :licence "MIT"
-  :depends-on ("alexandria" "split-sequence" "inferior-shell")
+  :depends-on ("alexandria" "split-sequence" "inferior-shell"
+               "trivial-features")
   :components ((:file "packages")
                (:file "npa-utilities" :depends-on ("packages"))
                (:file "operators"

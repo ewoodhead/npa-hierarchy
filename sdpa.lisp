@@ -1,6 +1,6 @@
 (in-package :sdpa)
 
-(defparameter *solver* "sdpa"
+(defparameter *solver* #-windows "sdpa" #+windows "SDPA"
   "Name of the solver to use, e.g. \"sdpa\" or \"sdpa_gmp\".")
 
 (defparameter *mode* 'default
@@ -55,13 +55,18 @@ is a ratio."
     (ratio (coerce number *sdpa-float-type*))
     (t number)))
 
+(defun end-line (stream)
+  #+windows (princ #\Return stream)
+  (terpri stream))
+
 (defun write-constraint-matrix (n constraint stream
                                 &optional (key #'identity))
   "Write Nth constraint matrix to STREAM. Applies the function KEY to the
 coefficient before printing it."
   (do-block-matrix (c block i j constraint)
-    (format stream "~d ~d ~d ~d ~a~%" n block i j
-            (funcall key (ratio->float c)))))
+    (format stream "~d ~d ~d ~d ~a" n block i j
+            (funcall key (ratio->float c)))
+    (end-line stream)))
 
 (defun analyse-problem (problem)
   "Returns the number of costs and blocks and the block structure in
@@ -79,16 +84,19 @@ not equal."
 (defun export-problem (problem &optional (stream *standard-output*))
   "Write PROBLEM to STREAM in the sparse input format understood by SDPA."
   (with-slots (costs constraints maximise) problem
-    (flet ((dsign (x) (if maximise (- x) x)))
-      (format stream "*Offset = ~a~%" (dsign (first costs)))
-      (format stream "*Maximise = ~a~%" (not (not maximise)))
+    (flet ((dsign (x) (if maximise (- x) x))
+           (formatln (control-string &rest format-arguments)
+             (apply #'format stream control-string format-arguments)
+             (end-line stream)))
+      (formatln "*Offset = ~a" (dsign (first costs)))
+      (formatln "*Maximise = ~a" (not (not maximise)))
       (multiple-value-bind (ncosts nblocks blockstruct)
           (analyse-problem problem)
-        (format stream "  ~d = mDIM~%" (1- ncosts))
-        (format stream "  ~d = nBLOCK~%" nblocks)
-        (format stream "  (~{~d~^, ~}) = bLOCKsTRUCT~%" blockstruct))
+        (formatln "  ~d = mDIM" (1- ncosts))
+        (formatln "  ~d = nBLOCK" nblocks)
+        (formatln "  (~{~d~^, ~}) = bLOCKsTRUCT" blockstruct))
       (flet ((sign-cost (c) (ratio->float (dsign c))))
-        (format stream "~{~a~^ ~}~%" (mapcar #'sign-cost (rest costs)))))
+        (formatln "~{~a~^ ~}" (mapcar #'sign-cost (rest costs)))))
     (write-constraint-matrix 0 (first constraints) stream #'-)
     (loop for constraint in (rest constraints)
           for n upfrom 1

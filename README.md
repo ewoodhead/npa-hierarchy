@@ -59,7 +59,8 @@ with:
 
 The following installation instructions are quite detailed since I assume
 most people who might consider using this library are not already familiar
-with Lisp. The abridged version is:
+with Lisp. On Unix-like operating systems, including Linux and Mac OS, the
+short version is:
 - You will need SDPA, SBCL, and [Quicklisp](https://www.quicklisp.org/beta/)
   installed.
 - You install npa-hierarchy by putting the project directory somewhere where
@@ -69,6 +70,19 @@ with Lisp. The abridged version is:
 - It is recommended to run Lisp in an environment that supports it, such as
   [SLIME](https://common-lisp.net/project/slime/). Inputting multi-line Lisp
   expressions in a plain terminal is not a fun experience.
+
+If you're using Microsoft Windows, the following procedure seems to work:
+- Download SDPA from (here)[sdpa.sourceforge.net/download.html] and arrange
+  for the sdpa.exe executable to be located in a folder in the `%PATH%`
+  environment variable. SDPA should run if you type "sdpa" into a DOS prompt.
+- Download and install the Windows version of
+  (Portacle)[https://portacle.github.io/].
+- Download the npa-hierarchy library. Unzip it if necessary and copy or move
+  the npa-hierarchy folder and its contents into Portacle's projects/
+  subfolder. The exact location depends on where you installed Portacle.
+- Start Portacle and run `(ql:quickload :npa-hierarchy)` at the Lisp prompt
+  to install the dependencies.
+
 
 ### Install SDPA and SBCL
 
@@ -127,10 +141,7 @@ $ rlwrap sbcl --noinform
 PDFEAS
 *
 ```
-(Press Ctrl-D to escape.) Running`(in-package :npa-user)` puts you in a
-working package that imports the most important symbols from other packages
-in the library, so you don't need to prefix them with their package names (so
-e.g. you can type `solve-problem` instead of `npa-hierarchy:solve-problem`).
+(Press Ctrl-D to escape.)
 
 ### Configure Emacs (optional but recommended)
 
@@ -151,13 +162,6 @@ sure). Then:
 - Start Emacs (install it if needed, e.g. `sudo aptitude install emacs`).
 - Do `M-x slime` to start SLIME. This means press whatever Emacs considers
   the "Meta" key and 'x' at the same time, then type "slime" and press enter.
-- Enter one of `(ql:quickload :npa-hierarchy)`, `(asdf:load-system
-  :npa-hierarchy)`, or `(require :npa-hierarchy)` to load the npa-hierarchy
-  library. You need to use `ql:quickload` the first time you load the
-  npa-hierarchy library (or after an update) in order to pull in a few
-  dependencies off the internet; after this it doesn't matter which you use.
-- Either enter `(in-package :npa-user)` or do `C-c M-p npa-user` to switch to
-  the npa-user working package.
 
 In key chords like C-c and M-x, 'C' and 'M' mean you should press whatever
 Emacs considers the "Control" or "Meta" key along with the key that
@@ -192,7 +196,47 @@ listed on these websites will work for you:
 - https://lispcookbook.github.io/cl-cookbook/editor-support.html
 - https://www.cliki.net/Development
 
-## Examples
+### Updating.
+
+If you install an updated version of this library, it's a good idea to update
+Quicklisp itself before loading the new version. You can do that by running
+the following in Lisp:
+```
+(ql:update-client)
+(ql:update-all-dists)
+```
+You can then load the new version by running `(ql:quickload :npa-hierarchy)`.
+
+If you're using Emacs and want to check for updates to SLIME or other Emacs
+packages, do `M-x package-list-packages` and then (capital) `U` to start
+installing updates if there are any.
+
+## Use and examples.
+
+### Loading.
+
+To use this library, start Lisp and run one of the following three commands
+to load it:
+```
+(ql:quickload :npa-hierarchy)
+(asdf:load-system :npa-hierarchy)
+(require :npa-hierarchy)
+```
+You should use the first one, `(ql:quickload :npa-hierarchy)`, the first time
+you load the library after installing it or after an update. The rest of the
+time it doesn't matter which one you use.
+
+After loading the library, run
+```
+(in-package :npa-user)
+```
+If you're running Lisp in Emacs/SLIME, you can alternatively do `C-c M-p
+npa-user`. This puts you in a working package that imports
+the most important symbols from other packages in the library, so you don't
+need to prefix them with their package names (so, for example, you can type
+`solve-problem` instead of `npa-hierarchy:solve-problem`).
+
+### Examples.
 
 The following examples assume you have loaded the npa-hierarchy library and
 are in the npa-user working package.
@@ -233,7 +277,7 @@ The general format understood by the `solve-problem` macro is
  (*imise POLYNOMIAL)
  (subject-to EQUALITY-CONSTRAINTS...)
  (where LOCAL-VARIABLE-BINDINGS...)
- (level LEVEL)
+ (level LEVEL))
 ```
 Each of the forms should be surrounded with parentheses, as shown. The
 `*imise` and `level` forms are required. The other two are optional. An
@@ -394,7 +438,7 @@ PDOPT
 ```
 This tells us we were waiting about 80 seconds for the solution, with about
 0.13 of those seconds spent running Lisp code (this includes generating the
-hierarchy relaxation at level 4 and writing the SPDA output file).
+hierarchy relaxation at level 4 and writing the SPDA input file).
 
 The name of the solver is represented as a string in the global variable
 `*solver*`. You can change it if the SDPA executable is named something other
@@ -422,7 +466,7 @@ calling the `export-to-file` function, e.g.
             + A3 (B1 - B2) + (A1 - A2) B3)
   (level 5)))
 ```
-You can then run SDPA on the output file in a terminal, e.g. with
+You can then run SDPA on the generated input file in a terminal, e.g. with
 ```
 $ sdpa -ds i3322_lvl5.dat-s -o i3322_lvl5.out -pt 0
 ```
