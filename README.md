@@ -196,7 +196,7 @@ listed on these websites will work for you:
 - https://lispcookbook.github.io/cl-cookbook/editor-support.html
 - https://www.cliki.net/Development
 
-### Updating.
+### Updating
 
 If you install an updated version of this library, it's a good idea to update
 Quicklisp itself before loading the new version. You can do that by running
@@ -211,9 +211,9 @@ If you're using Emacs and want to check for updates to SLIME or other Emacs
 packages, do `M-x package-list-packages` and then (capital) `U` to start
 installing updates if there are any.
 
-## Use and examples.
+## Use and examples
 
-### Loading.
+### Loading
 
 To use this library, start Lisp and run one of the following three commands
 to load it:
@@ -236,7 +236,7 @@ the most important symbols from other packages in the library, so you don't
 need to prefix them with their package names (so, for example, you can type
 `solve-problem` instead of `npa-hierarchy:solve-problem`).
 
-### Examples.
+### Examples
 
 The following examples assume you have loaded the npa-hierarchy library and
 are in the npa-user working package.
