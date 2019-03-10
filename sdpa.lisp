@@ -49,11 +49,19 @@ run interactively.")
   "Return an integer or floating-point representation of NUMBER. This returns
 NUMBER converted to a floating-point number of type *SDPA-FLOAT-TYPE* if it
 is a ratio."
-  (check-type number real)
-  (typecase number
+  (etypecase number
     (integer number)
     (ratio (coerce number *sdpa-float-type*))
-    (t number)))
+    (real number)))
+
+(defun num->str (number)
+  "Return an integer or floating-point string representation of NUMBER."
+  (setf number (ratio->float number))
+  (format nil
+          (etypecase number
+            (integer "~d")
+            (real "~f"))
+          number))
 
 (defun end-line (stream)
   #+windows (princ #\Return stream)
@@ -65,7 +73,7 @@ is a ratio."
 coefficient before printing it."
   (do-block-matrix (c block i j constraint)
     (format stream "~d ~d ~d ~d ~a" n block i j
-            (funcall key (ratio->float c)))
+            (num->str (funcall key c)))
     (end-line stream)))
 
 (defun analyse-problem (problem)
@@ -95,7 +103,7 @@ not equal."
         (formatln "  ~d = mDIM" (1- ncosts))
         (formatln "  ~d = nBLOCK" nblocks)
         (formatln "  (~{~d~^, ~}) = bLOCKsTRUCT" blockstruct))
-      (flet ((sign-cost (c) (ratio->float (dsign c))))
+      (flet ((sign-cost (c) (num->str (dsign c))))
         (formatln "~{~a~^ ~}" (mapcar #'sign-cost (rest costs)))))
     (write-constraint-matrix 0 (first constraints) stream #'-)
     (loop for constraint in (rest constraints)
