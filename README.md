@@ -84,7 +84,6 @@ If you're using Microsoft Windows, the following procedure seems to work:
 - Start Portacle and run `(ql:quickload :npa-hierarchy)` at the Lisp prompt
   to install the dependencies.
 
-
 ### Install SDPA and SBCL
 
 If you want to use this library, you will need SDPA installed in your `$PATH`
@@ -212,7 +211,8 @@ If you're using Emacs and want to check for updates to SLIME or other Emacs
 packages, do `M-x package-list-packages` and then (capital) `U` to start
 installing updates if there are any.
 
-## Use and examples
+
+## Using the library
 
 ### Loading
 
@@ -239,8 +239,10 @@ need to prefix them with their package names (so, for example, you can type
 
 ### Examples
 
-The following examples assume you have loaded the npa-hierarchy library and
-are in the npa-user working package.
+The following examples illustrate general interactive use of this
+library. They can be typed in at the prompt if you have loaded the
+npa-hierarchy library and are in the npa-user working package, as described
+above.
 
 The simplest way to use the library is to use the `solve-problem` macro. The
 basic invocation is illustrated by the example for CHSH given above. The
@@ -456,9 +458,11 @@ NPA-USER> (+ 1 (sqrt (/ 11.0 3)))
 2.914854215512676
 ```
 
-You may just want to export a problem without running SDPA on it, for
-instance to run on a more powerful machine. You can accomplish this by
-calling the `export-to-file` function, e.g.
+### Running SDPA manually
+
+You may want to export a problem without running SDPA on it, for example to
+run on a more powerful computer. You can accomplish this by calling the
+`export-to-file` function on a problem, for example,
 ```
 (export-to-file
  "i3322_lvl5.dat-s"
@@ -474,19 +478,109 @@ $ sdpa -ds i3322_lvl5.dat-s -o i3322_lvl5.out -pt 0
 The output file contains the comment lines
 ```
 *Offset = 8
+*Scale = 1
 *Maximise = T
+*Solution = -(SDP_sol / Scale + Offset).
 ```
-The format of the SDP passed to SDPA is a minimisation problem and the
-constant part (the coefficient multiplied by the identity) is ignored. The
-two comment lines mean we need to add 8 to the primal and dual solutions
-returned by SDPA and then flip their signs in order to get the actual
-solution to the problem. The `problem` macro processes a problem in the same
-format as `solve-problem` and returns an object representing the NPA
-relaxation. (In fact, `(solve-problem ...)` is just defined as a shorthand
-for `(solve (problem ...))`.)
+and, further down, the primal and dual solutions to the SDP,
+```
+objValPrimal = -1.3003501538055906e+01
+objValDual   = -1.3003501538055906e+01
+```
+(The high precision here is due to using SDPA-DD to solve the SDP.) The
+format of the SDP passed to SDPA is a minimisation problem and the constant
+part (the coefficient multiplied by the identity) is ignored. The comment
+lines tell us we need to divide the primal and dual solutions returned by
+SDPA by the scale factor of 1, add the offset 8 to the result, and finally
+flip its sign to get the solution 5.003501538055906 to the original NPA
+problem. The solution can also be imported into Lisp by calling the function
+`extract-solution` on the output file, which applies these operations
+automatically:
+```
+NPA-USER> (extract-solution "i3322_lvl5.out")
+5.003501538055906
+5.003501538055906
+PFEAS
+```
 
-Lisp is not Matlab, but there are ways to get a plot done, e.g. using a
-library to call out to gnuplot. This code snippet uses the vgplot library
+The `*Scale = ` comment line exists because the npa-hierarchy library by
+default rescales the NPA problem if it contains rational coefficients. In
+that case, npa-hierarchy multiplies the entire problem by the lowest common
+multiple of the denominators of the rational coefficients so that only exact
+integer and floating point coefficients remain in the SDP. This is done in
+order to avoid a possible loss of precision when the library is used with
+high-precision versions of SDPA such as SDPA-GMP. This behaviour is
+controlled by a global variable `*scale-ratio*`. It can be disabled by
+running `(setf *scale-ratio* nil)` and reenabled with `(setf *scale-ratio*
+t)`.
+
+The `problem` macro used above processes a problem in the same format as
+`solve-problem` and returns an object representing the NPA relaxation. (In
+fact, `(solve-problem ...)` is just defined as a shorthand for `(solve
+(problem ...))`.) The returned object does not necessarily have to be passed
+immediately to the `export-to-file` function. You could, for instance, save
+it to a variable first:
+```
+(defvar *my-problem*
+  (problem
+   (maximise A1 + A2 + B1 + B2 - (A1 + A2) (B1 + B2)
+             + A3 (B1 - B2) + (A1 - A2) B3)
+   (level 5)))
+
+(export-to-file "i3322_lvl5.dat-s" *my-problem*)
+```
+
+The generation of the NPA relaxation is actually handled by a simpler
+function, `npa->sdp`. It can be used if you don't need the `problem` macro to
+process an expression with symbols like `A1` in order to generate the
+objective and constraints. For example, an SDPA input file for the CGLMP
+expression could be generated more simply by running
+```
+(export-to-file "cglmp3.dat-s" (npa->sdp (cglmp 3) () '(1 + A B) t))
+```
+using the `cglmp` function already included in this library. In the call to
+`npa->sdp` above, the second parameter is an (in this case, empty) list of
+constraints (polynomials whose expectation values we want to set to zero) and
+the fourth, `t`, indicates we want to maximise the expectation value of the
+objective polynomial.
+
+The actual job of the `problem` macro is to scan the problem description for
+symbols like `A1` or `A1/1` that look like a dichotomic operator or
+projector, create appropriate local variable bindings for them, and generate
+code that will compute the objective and constraint polynomials and call the
+`npa->sdp` function on them. For example, the macroexpansion of the CHSH
+maximisation problem
+```
+(problem
+ (maximise A1 (B1 + B2) + A2 (B1 - B2))
+ (level 1)
+```
+is
+```
+(let ((A2 (diop 0 2))
+      (B2 (diop 1 2))
+      (B1 (diop 1 1))
+      (A1 (diop 0 1)))
+  (let* ()
+    (npa->sdp (p+ (p* A1 (p+ B1 B2)) (p* A2 (p- B1 B2)))
+              (list)
+              '(1)
+              t)))
+```
+(You can see what the macroexpansion for a problem is by calling the
+`macroexpand-1` or `macroexpand` functions in Lisp or doing C-c M-m in
+Emacs/SLIME.) In the above expansion, `diop` is a function that returns an
+polynomial representing a dichotomic operator (for example, `(diop 0 1)`
+returns `#<POLYNOMIAL -Id + 2 A1|1>`) and `p+`, `p-`, and `p*` are functions
+that add, subtract, and multiply numbers and operators. The inner `let*` has
+an empty list of variable bindings because the problem in this case lacks a
+`where` form. The second argument to `npa->sdp` is just `(list)` (which
+returns an empty list) because there was no `subject-to` form.
+
+### Plotting
+
+Lisp is not Matlab, but there are ways to get a plot done, for example using
+a library to call out to gnuplot. This code snippet uses the vgplot library
 (`(ql:quickload :vgplot)`) to plot the local guessing probability vs. CHSH
 violation:
 ```
@@ -519,6 +613,7 @@ loop with code like this:
 in the Alexandria package does linear interpolation: `(lerp v a b)` = a +
 v*(b - a). Alexandria is a dependency of the npa-hierarchy library, so you
 should already have it installed.)
+
 
 ## Some tips and possible pitfalls
 

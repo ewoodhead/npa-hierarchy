@@ -66,6 +66,7 @@ column index, in that order."
 the coefficients, block numbers, and row and column indices of BLOCK-MATRIX."
   `(block nil
      (map-block-matrix (lambda (,coefficient ,block ,row ,col)
+                         (declare (ignorable ,coefficient ,block ,row ,col))
                          (tagbody ,@body))
                        ,block-matrix)
      ,@(if result `(,result) ())))

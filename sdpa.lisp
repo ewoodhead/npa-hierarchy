@@ -27,6 +27,10 @@ extensions.")
   "Controls whether temporary SDPA files are deleted after SDPA has been
 run interactively.")
 
+(defparameter *scale-ratio* t
+  "Control whether problems with rational coefficients are scaled to make
+them integers.")
+
 (defclass sdp-problem ()
   ((costs
     :initarg :costs
@@ -89,26 +93,47 @@ not equal."
               (length blockstruct)
               (coerce blockstruct 'list)))))
 
+(defun get-scale (problem)
+  (let ((scale 1))
+    (with-slots (costs constraints) problem
+      (dolist (x costs)
+        (when (typep x 'ratio)
+          (setf scale (lcm scale (denominator x)))))
+      (dolist (block-matrix constraints)
+        (do-block-matrix (x b row col block-matrix)
+          (when (typep x 'ratio)
+            (setf scale (lcm scale (denominator x)))))))
+    scale))
+
 (defun export-problem (problem &optional (stream *standard-output*))
   "Write PROBLEM to STREAM in the sparse input format understood by SDPA."
   (with-slots (costs constraints maximise) problem
-    (flet ((dsign (x) (if maximise (- x) x))
-           (formatln (control-string &rest format-arguments)
-             (apply #'format stream control-string format-arguments)
-             (end-line stream)))
-      (formatln "*Offset = ~a" (dsign (first costs)))
-      (formatln "*Maximise = ~a" (not (not maximise)))
-      (multiple-value-bind (ncosts nblocks blockstruct)
-          (analyse-problem problem)
-        (formatln "  ~d = mDIM" (1- ncosts))
-        (formatln "  ~d = nBLOCK" nblocks)
-        (formatln "  (~{~d~^, ~}) = bLOCKsTRUCT" blockstruct))
-      (flet ((sign-cost (c) (num->str (dsign c))))
-        (formatln "~{~a~^ ~}" (mapcar #'sign-cost (rest costs)))))
-    (write-constraint-matrix 0 (first constraints) stream #'-)
-    (loop for constraint in (rest constraints)
-          for n upfrom 1
-          do (write-constraint-matrix n constraint stream))))
+    (let ((scale (if *scale-ratio* (get-scale problem) 1)))
+      (setf maximise (not (not maximise)))
+      (flet ((dsign (x) (if maximise (- x) x))
+             (formatln (control-string &rest format-arguments)
+               (apply #'format stream control-string format-arguments)
+               (end-line stream)))
+        (formatln "*Offset = ~a" (dsign (first costs)))
+        (formatln "*Scale = ~d" scale)
+        (formatln "*Maximise = ~a" maximise)
+        (formatln "*Solution = ~a."
+                  (if maximise
+                      "-(SDP_sol / Scale + Offset)"
+                      "SDP_sol / Scale + Offset"))
+        (multiple-value-bind (ncosts nblocks blockstruct)
+            (analyse-problem problem)
+          (formatln "  ~d = mDIM" (1- ncosts))
+          (formatln "  ~d = nBLOCK" nblocks)
+          (formatln "  (~{~d~^, ~}) = bLOCKsTRUCT" blockstruct))
+        (flet ((sign-cost (c) (num->str (dsign (* c scale)))))
+          (formatln "~{~a~^ ~}" (mapcar #'sign-cost (rest costs)))))
+      (write-constraint-matrix 0 (first constraints) stream
+                               (lambda (c) (- (* scale c))))
+      (loop for constraint in (rest constraints)
+            for n upfrom 1
+            do (write-constraint-matrix n constraint stream
+                                        (lambda (c) (* scale c)))))))
 
 (defun export-to-file (filename problem &optional (deletep t))
   "Write PROBLEM to file named FILENAME in format expected by SDPA."
@@ -170,12 +195,14 @@ in the list LABELS."
   "Extract and return primal and dual solutions and status from SDPA output
 read from STREAM."
   (let ((*read-default-float-format* *sdpa-float-type*))
-    (destructuring-bind (offset maximise phase primal dual)
-        (get-items '("*Offset" "*Maximise"
+    (destructuring-bind (offset scale maximise phase primal dual)
+        (get-items '("*Offset" "*Scale" "*Maximise"
                      "phase.value" "objValPrimal" "objValDual")
                    stream)
+      (setf offset (rational offset))
       (flet ((adjust (x)
-               (setf x (+ x offset))
+               (setf x (coerce (+ (/ (rational x) scale) offset)
+                               'double-float))
                (if maximise (- x) x)))
           (values (adjust primal) (adjust dual) phase)))))
 
@@ -185,7 +212,7 @@ read from file named FILENAME."
   (if (streamp filename-or-stream)
       (extract-from-stream filename-or-stream)
       (with-open-file (s filename-or-stream :direction :input)
-        (extract-solution s))))
+        (extract-from-stream s))))
 
 (defun solve (problem &optional (fname *tmp-file-rootname*)
                         (delete-files *delete-sdpa-tmp-files*))

@@ -31,9 +31,7 @@ strings always construct monomials where all the site, output, and input
 numbers are nonnegative integers.
 
 The main purpose of this class is to give monomials a type distinct from
-LIST. In particular this allows them to have their own PRINT-OBJECT
-method. It's a structure rather than a class so that monomials can be used as
-hash table keys."))
+LIST. This allows them to have their own PRINT-OBJECT method."))
 
 (declaim (ftype (function (monomial) list) monomial-sites))
 (declaim (ftype function write-monomial))

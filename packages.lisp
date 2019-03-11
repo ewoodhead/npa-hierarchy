@@ -45,7 +45,7 @@
   (:use :common-lisp :alexandria :inferior-shell :block-matrix)
   (:export :*solver* :*mode* :default :stable :fast
            :*threads* :*sdpa-float-type*
-           :*tmp-file-rootname* :*delete-sdpa-tmp-files*
+           :*tmp-file-rootname* :*delete-sdpa-tmp-files* :*scale-ratio*
            :sdp-problem :costs :constraints :maximise :offset
            :export-problem :export-to-file :run-sdpa
            :extract-solution :extract-from-file :solve))
