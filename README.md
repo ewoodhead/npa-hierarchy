@@ -503,12 +503,12 @@ NPA-USER> (extract-solution "i3322_lvl5.out")
 PFEAS
 ```
 
-The `*Scale = ` comment line exists because the npa-hierarchy library by
-default rescales the NPA problem if it contains rational coefficients. In
-that case, npa-hierarchy multiplies the entire problem by the lowest common
-multiple of the denominators of the rational coefficients so that only exact
-integer and floating point coefficients remain in the SDP. This is done in
-order to avoid a possible loss of precision when the library is used with
+The `*Scale =` comment line exists because the npa-hierarchy library by
+default rescales the problem if it contains rational coefficients. In that
+case, npa-hierarchy multiplies the entire problem by the lowest common
+multiple of the denominators of all the rational coefficients so that only
+exact integer and floating point coefficients remain in the SDP. This is done
+in order to avoid a possible loss of precision when the library is used with
 high-precision versions of SDPA such as SDPA-GMP. This behaviour is
 controlled by a global variable `*scale-ratio*`. It can be disabled by
 running `(setf *scale-ratio* nil)` and reenabled with `(setf *scale-ratio*
@@ -536,9 +536,10 @@ process an expression with symbols like `A1` in order to generate the
 objective and constraints. For example, an SDPA input file for the CGLMP
 expression could be generated more simply by running
 ```
-(export-to-file "cglmp3.dat-s" (npa->sdp (cglmp 3) () '(1 + A B) t))
+(export-to-file "cglmp3.dat-s"
+                (npa->sdp (cglmp 3) () '(1 + A B) t))
 ```
-using the `cglmp` function already included in this library. In the call to
+using the `cglmp` function already included in the library. In the call to
 `npa->sdp` above, the second parameter is an (in this case, empty) list of
 constraints (polynomials whose expectation values we want to set to zero) and
 the fourth, `t`, indicates we want to maximise the expectation value of the
@@ -569,7 +570,7 @@ is
 ```
 (You can see what the macroexpansion for a problem is by calling the
 `macroexpand-1` or `macroexpand` functions in Lisp or doing C-c M-m in
-Emacs/SLIME.) In the above expansion, `diop` is a function that returns an
+Emacs/SLIME.) In the above expansion, `diop` is a function that returns a
 polynomial representing a dichotomic operator (for example, `(diop 0 1)`
 returns `#<POLYNOMIAL -Id + 2 A1|1>`) and `p+`, `p-`, and `p*` are functions
 that add, subtract, and multiply numbers and operators. The inner `let*` has
