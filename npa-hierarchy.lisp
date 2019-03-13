@@ -210,7 +210,7 @@ are modified and must be a polynomial and list of polynomials, respectively."
                           (append (cons objective equalities) inequalities)
                           level)))
     (substitute-equalities equalities inequalities objective moment-matrices)
-    (multiple-value-bind (costs moments)
+    (multiple-value-bind (costs moments monomials)
         (loop with monomials = (sort (hash-table-keys moment-matrices)
                                      #'monomial<)
               initially (assert (monomial= (first monomials) *id*))
@@ -218,8 +218,9 @@ are modified and must be a polynomial and list of polynomials, respectively."
               for moment = (gethash mon moment-matrices)
               collect (coeff mon objective) into costs
               collect moment into moments
-              finally (return (values costs moments)))
-      (sdp-problem costs moments maximise))))
+              finally (return (values costs moments monomials)))
+      (sdp-problem costs moments maximise
+                   (list (cons "Monomials" monomials))))))
 
 (defun npa->sdp (objective level
                  &optional (equalities ()) (inequalities ()) (maximise nil))

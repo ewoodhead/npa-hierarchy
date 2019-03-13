@@ -43,11 +43,12 @@
 
 (defpackage :sdpa
   (:use :common-lisp :alexandria :inferior-shell :block-matrix)
+  (:import-from :split-sequence :split-sequence)
   (:export :*solver* :*mode* :default :stable :fast
-           :*threads* :*sdpa-float-type*
-           :*tmp-file-rootname* :*delete-sdpa-tmp-files* :*scale-ratio*
-           :sdp-problem :costs :constraints :maximise
-           :sdp-costs :sdp-constraints :sdp-maximise
+           :*threads* :*sdpa-float-type* :*tmp-file-rootname*
+           :*delete-sdpa-tmp-files* :*scale-ratio* :*comment-length*
+           :sdp-problem :costs :constraints :maximise :comments
+           :sdp-costs :sdp-constraints :sdp-maximise :sdp-comments
            :offset :export-problem :export-to-file :run-sdpa
            :extract-solution :extract-from-file :solve))
 

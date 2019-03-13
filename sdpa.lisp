@@ -31,6 +31,10 @@ run interactively.")
   "Control whether problems with rational coefficients are scaled to make
 them integers.")
 
+(defparameter *comment-length* 77
+  "Maximum length of a comment line in the SDPA input file, not including the
+'*' at the beginning.")
+
 (defclass sdp-problem ()
   ((costs
     :initarg :costs
@@ -44,13 +48,20 @@ them integers.")
     :initarg :maximise
     :initform nil
     :type boolean
-    :reader sdp-maximise)))
+    :reader sdp-maximise)
+   (comments
+    :initarg :comments
+    :initform nil
+    :type (or null string)
+    :reader sdp-comments)))
 
-(defun sdp-problem (costs constraints &optional (maximise nil))
+(defun sdp-problem (costs constraints
+                    &optional (maximise nil) (comments nil))
   (make-instance 'sdp-problem
                  :costs costs
                  :constraints constraints
-                 :maximise maximise))
+                 :maximise maximise
+                 :comments comments))
 
 (defun ratio->float (number)
   "Return an integer or floating-point representation of NUMBER. This returns
@@ -113,9 +124,24 @@ not equal."
                (lcm (aref scales i) (denominator c)))))))
   scales)
 
+(defun write-comments (comments &optional (stream *standard-output*))
+  (let ((*print-right-margin* *comment-length*))
+    (dolist (comment comments)
+      (destructuring-bind (label . objects) comment
+        (let ((comment-lines (split-sequence
+                              #\Newline
+                              (format nil
+                                      "~a~< = ~;{~@{~a~^,~:_ ~}~;}~:>"
+                                      label
+                                      objects))))
+          (dolist (line comment-lines)
+            (write-char #\* stream)
+            (write-string line stream)
+            (end-line stream)))))))
+
 (defun export-problem (problem &optional (stream *standard-output*))
   "Write PROBLEM to STREAM in the sparse input format understood by SDPA."
-  (with-slots (costs constraints maximise) problem
+  (with-slots (costs constraints maximise comments) problem
     (multiple-value-bind (ncosts nblocks blockstruct)
         (analyse-problem problem)
       (let ((scale 1)
@@ -136,6 +162,7 @@ not equal."
                     (if maximise
                         "-(SDP_sol / Scale + Offset)"
                         "SDP_sol / Scale + Offset"))
+          (write-comments comments stream)
           (formatln "  ~d = mDIM" (1- ncosts))
           (formatln "  ~d = nBLOCK" nblocks)
           (formatln "  (~{~d~^, ~}) = bLOCKsTRUCT" blockstruct)
