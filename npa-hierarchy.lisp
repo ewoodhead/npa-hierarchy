@@ -218,7 +218,7 @@ are modified and must be a polynomial and list of polynomials, respectively."
               for moment = (gethash mon moment-matrices)
               collect (coeff mon objective) into costs
               collect moment into moments
-              finally (return (values costs moments monomials)))
+              finally (return (values costs moments (rest monomials))))
       (sdp-problem costs moments maximise
                    (list (cons "Monomials" monomials))))))
 
