@@ -46,13 +46,14 @@
   (:export :*solver* :*mode* :default :stable :fast
            :*threads* :*sdpa-float-type*
            :*tmp-file-rootname* :*delete-sdpa-tmp-files* :*scale-ratio*
-           :sdp-problem :costs :constraints :maximise :offset
-           :export-problem :export-to-file :run-sdpa
+           :sdp-problem :costs :constraints :maximise
+           :sdp-costs :sdp-constraints :sdp-maximise
+           :offset :export-problem :export-to-file :run-sdpa
            :extract-solution :extract-from-file :solve))
 
 (defpackage :npa-hierarchy
   (:use :common-lisp :operators :block-matrix :sdpa :npa-utilities)
-  (:import-from :split-sequence :split-sequence)
+  (:import-from :split-sequence :split-sequence :split-sequence-if)
   (:import-from :alexandria :hash-table-keys
                 :if-let :when-let :assoc-value :maxf
                 :sequence-of-length-p)

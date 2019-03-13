@@ -34,14 +34,17 @@ them integers.")
 (defclass sdp-problem ()
   ((costs
     :initarg :costs
-    :type list)
+    :type list
+    :reader sdp-costs)
    (constraints
     :initarg :constraints
-    :type list)
+    :type list
+    :reader sdp-constraints)
    (maximise
     :initarg :maximise
     :initform nil
-    :type boolean)))
+    :type boolean
+    :reader sdp-maximise)))
 
 (defun sdp-problem (costs constraints &optional (maximise nil))
   (make-instance 'sdp-problem
@@ -71,13 +74,14 @@ is a ratio."
   #+windows (princ #\Return stream)
   (terpri stream))
 
-(defun write-constraint-matrix (n constraint stream
-                                &optional (key #'identity))
+(defun write-constraint-matrix (n constraint stream scales
+                                &optional (key #'identity) (base-block 1))
   "Write Nth constraint matrix to STREAM. Applies the function KEY to the
 coefficient before printing it."
   (do-block-matrix (c block i j constraint)
     (format stream "~d ~d ~d ~d ~a" n block i j
-            (num->str (funcall key c)))
+            (num->str (funcall key
+                               (* c (aref scales (- block base-block))))))
     (end-line stream)))
 
 (defun analyse-problem (problem)
@@ -93,47 +97,56 @@ not equal."
               (length blockstruct)
               (coerce blockstruct 'list)))))
 
-(defun get-scale (problem)
+(defun get-scale (costs)
   (let ((scale 1))
-    (with-slots (costs constraints) problem
-      (dolist (x costs)
-        (when (typep x 'ratio)
-          (setf scale (lcm scale (denominator x)))))
-      (dolist (block-matrix constraints)
-        (do-block-matrix (x b row col block-matrix)
-          (when (typep x 'ratio)
-            (setf scale (lcm scale (denominator x)))))))
+    (dolist (c costs)
+      (when (typep c 'ratio)
+        (setf scale (lcm scale (denominator c)))))
     scale))
+
+(defun get-scales (constraints scales &optional (base-block 1))
+  (dolist (block-matrix constraints)
+    (do-block-matrix (c b row col block-matrix)
+      (when (typep c 'ratio)
+        (let ((i (- b base-block)))
+          (setf (aref scales i)
+               (lcm (aref scales i) (denominator c)))))))
+  scales)
 
 (defun export-problem (problem &optional (stream *standard-output*))
   "Write PROBLEM to STREAM in the sparse input format understood by SDPA."
   (with-slots (costs constraints maximise) problem
-    (let ((scale (if *scale-ratio* (get-scale problem) 1)))
-      (setf maximise (not (not maximise)))
-      (flet ((dsign (x) (if maximise (- x) x))
-             (formatln (control-string &rest format-arguments)
-               (apply #'format stream control-string format-arguments)
-               (end-line stream)))
-        (formatln "*Offset = ~a" (dsign (first costs)))
-        (formatln "*Scale = ~d" scale)
-        (formatln "*Maximise = ~a" maximise)
-        (formatln "*Solution = ~a."
-                  (if maximise
-                      "-(SDP_sol / Scale + Offset)"
-                      "SDP_sol / Scale + Offset"))
-        (multiple-value-bind (ncosts nblocks blockstruct)
-            (analyse-problem problem)
+    (multiple-value-bind (ncosts nblocks blockstruct)
+        (analyse-problem problem)
+      (let ((scale 1)
+            (scales (make-array nblocks :element-type '(integer 1 *)
+                                :initial-element 1)))
+        (when *scale-ratio*
+          (setf scale (get-scale (rest costs))
+                scales (get-scales constraints scales)))
+        (setf maximise (not (not maximise)))
+        (flet ((dsign (x) (if maximise (- x) x))
+               (formatln (control-string &rest format-arguments)
+                 (apply #'format stream control-string format-arguments)
+                 (end-line stream)))
+          (formatln "*Offset = ~a" (dsign (first costs)))
+          (formatln "*Scale = ~d" scale)
+          (formatln "*Maximise = ~a" maximise)
+          (formatln "*Solution = ~a."
+                    (if maximise
+                        "-(SDP_sol / Scale + Offset)"
+                        "SDP_sol / Scale + Offset"))
           (formatln "  ~d = mDIM" (1- ncosts))
           (formatln "  ~d = nBLOCK" nblocks)
-          (formatln "  (~{~d~^, ~}) = bLOCKsTRUCT" blockstruct))
-        (flet ((sign-cost (c) (num->str (dsign (* c scale)))))
-          (formatln "~{~a~^ ~}" (mapcar #'sign-cost (rest costs)))))
-      (write-constraint-matrix 0 (first constraints) stream
-                               (lambda (c) (- (* scale c))))
-      (loop for constraint in (rest constraints)
-            for n upfrom 1
-            do (write-constraint-matrix n constraint stream
-                                        (lambda (c) (* scale c)))))))
+          (formatln "  (~{~d~^, ~}) = bLOCKsTRUCT" blockstruct)
+          (flet ((sign-cost (c) (num->str (dsign (* c scale)))))
+            (formatln "~{~a~^ ~}" (mapcar #'sign-cost (rest costs)))))
+        (write-constraint-matrix
+         0 (first constraints) stream scales (lambda (c) (- c)))
+        (loop for constraint in (rest constraints)
+              for n upfrom 1
+              do (write-constraint-matrix
+                  n constraint stream scales))))))
 
 (defun export-to-file (filename problem &optional (deletep t))
   "Write PROBLEM to file named FILENAME in format expected by SDPA."

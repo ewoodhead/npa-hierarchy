@@ -148,15 +148,15 @@ from 2) removed. The list POLYNOMIALS is modified."
                       (setf (cdr prev-cell) (rest max-cell)))
                   (return (values maxm maxp polynomials)))))
 
-(defun substitute-constraint (constraint monomial moment-matrices)
+(defun substitute-equality (equality monomial moment-matrices)
   "Eliminate MONOMIAL from MOMENT-MATRICES (a hash table with monomials as
 keys and block matrices as values) under the constraint that the polynomial
-CONSTRAINT is zero. This modifies MOMENT-MATRICES (unless MONOMIAL is not in
-CONSTRAINT) and returns the new hash table with MONOMIAL eliminated."
-  (let ((y (coeff monomial constraint)))
+EQUALITY is zero. This modifies MOMENT-MATRICES (unless MONOMIAL is not in
+EQUALITY) and returns the new hash table with MONOMIAL eliminated."
+  (let ((y (coeff monomial equality)))
     (unless (zerop y)
       (let ((matrix (gethash monomial moment-matrices)))
-        (do-polynomial (x m (p- constraint (term monomial constraint)))
+        (do-polynomial (x m (p- equality (term monomial equality)))
           (let ((scale (- (/ x y))))
             (mincrement (gethash m moment-matrices)
                         scale
@@ -164,20 +164,27 @@ CONSTRAINT) and returns the new hash table with MONOMIAL eliminated."
       (remhash monomial moment-matrices)))
   moment-matrices)
 
-(defun substitute-constraints (constraints objective moment-matrices)
-  "Use CONSTRAINTS to eliminate monomials from OBJECTIVE and table of
-MOMENT-MATRICES. Returns the modified OBJECTIVE polynomial and
-MOMENT-MATRICES table. This function is destructive: all the arguments are
-modified."
-  (loop while constraints
-        do (multiple-value-bind (mmax max-constraint remaining-constraints)
-               (find-max-monomial constraints)
-             (setf constraints remaining-constraints)
-             (substitute-monomial mmax objective max-constraint)
-             (substitute-constraint max-constraint mmax moment-matrices)
-             (dolist (c constraints)
-               (substitute-monomial mmax c max-constraint)))
-        finally (return (values objective moment-matrices))))
+(defun substitute-equalities (equalities inequalities
+                              objective moment-matrices)
+  "Use EQUALITIES to eliminate monomials from INEQUALITIES, OBJECTIVE, and
+table of MOMENT-MATRICES. Returns the modified OBJECTIVE polynomial and
+MOMENT-MATRICES table with INEQUALITIES merged in. This function is
+destructive: all the arguments are modified."
+  (loop while equalities
+        do (multiple-value-bind (mmax max-equality remaining-equalities)
+               (find-max-monomial equalities)
+             (setf equalities remaining-equalities)
+             (substitute-monomial mmax objective max-equality)
+             (dolist (ineq inequalities)
+               (substitute-monomial mmax ineq max-equality))
+             (substitute-equality max-equality mmax moment-matrices)
+             (dolist (e equalities)
+               (substitute-monomial mmax e max-equality))))
+  (loop for b upfrom 2
+        for ineq in inequalities
+        do (do-polynomial (c mon ineq)
+             (setf (mcoeff (gethash mon moment-matrices) b 1 1) c)))
+  (values objective moment-matrices))
 
 (defun merge-conjugates (polynomial)
   "Merge terms in POLYNOMIAL whose monomials are adjoints of each other,
@@ -192,16 +199,17 @@ is destructive: the argument POLYNOMIAL is modified."
         (incf (coeff m* polynomial) c))))
   polynomial)
 
-(defun convert-to-sdp (objective constraints level maximise)
+(defun convert-to-sdp (objective level equalities inequalities maximise)
   "Convert NPA problem to semidefinite programming problem. This is the same
 as the NPA->SDP function except that the arguments OBJECTIVE and CONSTRAINTS
 are modified and must be a polynomial and list of polynomials, respectively."
   (merge-conjugates objective)
-  (mapc #'merge-conjugates constraints)
+  (mapc #'merge-conjugates equalities)
+  (mapc #'merge-conjugates inequalities)
   (let ((moment-matrices (moments-at-npa-level
-                          (cons objective constraints)
+                          (append (cons objective equalities) inequalities)
                           level)))
-    (substitute-constraints constraints objective moment-matrices)
+    (substitute-equalities equalities inequalities objective moment-matrices)
     (multiple-value-bind (costs moments)
         (loop with monomials = (sort (hash-table-keys moment-matrices)
                                      #'monomial<)
@@ -213,30 +221,34 @@ are modified and must be a polynomial and list of polynomials, respectively."
               finally (return (values costs moments)))
       (sdp-problem costs moments maximise))))
 
-(defun npa->sdp (objective constraints level &optional (maximise nil))
-  "Translate NPA problem (optimisation of OBJECTIVE subject to the list of
-CONSTRAINTS being zero at level LEVEL of the NPA hierarchy) to a semidefinite
-programming problem. The problem is taken to be a minimisation problem unless
-the optional argument MAXIMISE is non-nil."
+(defun npa->sdp (objective level
+                 &optional (equalities ()) (inequalities ()) (maximise nil))
+  "Translate NPA problem (optimisation of OBJECTIVE at given LEVEL of the NPA
+hierarchy, subject to the expectation values of the polynomials in the lists
+EQUALITIES and INEQUALITIES being equal to and lower bounded by zero) to a
+semidefinite programming problem. The problem is taken to be a minimisation
+problem unless the optional argument MAXIMISE is non-nil."
   (convert-to-sdp (fresh-polynomial objective)
-                  (mapcar #'fresh-polynomial constraints)
                   level
+                  (mapcar #'fresh-polynomial equalities)
+                  (mapcar #'fresh-polynomial inequalities)
                   maximise))
 
-(defun optimise (objective constraints level &optional (maximise nil))
-  "Maximise or minimise OBJECTIVE subject to the list of CONSTRAINTS at given
-LEVEL of the NPA hierarchy."
-  (solve (npa->sdp objective constraints level maximise)))
+(defun optimise (objective level
+                 &optional (equalities ()) (inequalities ()) (maximise nil))
+  "Maximise or minimise OBJECTIVE subject to the list of EQUALITIES and
+INEQUALITIES at given LEVEL of the NPA hierarchy."
+  (solve (npa->sdp objective level equalities inequalities maximise)))
 
-(defun maximise (objective level &rest constraints)
+(defun maximise (objective level &optional (equalities ()) (inequalities ()))
   "Maximise polynomial OBJECTIVE at given LEVEL of the NPA hierarchy subject
-to zero or more CONSTRAINTS."
-  (optimise objective constraints level t))
+to zero or more EQUALITIES and INEQUALITIES."
+  (optimise objective level equalities inequalities t))
 
-(defun minimise (objective level &rest constraints)
+(defun minimise (objective level &optional (equalities ()) (inequalities ()))
   "Minimise polynomial OBJECTIVE at given LEVEL of the NPA hierarchy subject
-to zero or more CONSTRAINTS."
-  (optimise objective constraints level nil))
+to zero or more EQUALITIES and INEQUALITIES."
+  (optimise objective level equalities inequalities nil))
 
 (defun find-form (forms &rest keys)
   (dolist (k keys)
@@ -264,14 +276,35 @@ to zero or more CONSTRAINTS."
     (values (expand-expr objective) t)
     (values (expand-expr (minimise-form forms)) nil)))
 
+(defun split-on (delimiters list)
+  "Split LIST on DELIMITERS. The second return value is a list of delimiters
+in DELIMITERS in the order they are found in LIST."
+  (let ((delims ()))
+    (values
+     (split-sequence-if (lambda (x)
+                          (let ((result (member x delimiters)))
+                            (when result
+                              (push x delims))
+                            result))
+                        list)
+     (nreverse delims))))
+
 (defun get-constraints (st-form)
-  "Rearrange constraints so they are in the form polynomial = 0."
-  (loop for expr in st-form
-        append (destructuring-bind (term1 . terms)
-                   (nreverse (split-sequence '= expr))
-                 (loop for term2 in terms
-                       collect `(p- ,(expand-expr term2)
-                                    ,(expand-expr term1))))))
+  "Return equalities and inequalities rearranged in the form polynomial = 0
+or polynomial >= 0."
+  (let ((equalities ())
+        (inequalities ()))
+    (dolist (form st-form)
+      (multiple-value-bind (exprs relations) (split-on '(= >= <= > <) form)
+        (loop for x = (expand-expr (first exprs)) then y
+              for expr in (rest exprs)
+              for y = (expand-expr expr)
+              for r in relations
+              do (case r
+                   (= (push `(p- ,x ,y) equalities))
+                   ((>= >) (push `(p- ,x ,y) inequalities))
+                   ((<= <) (push `(p- ,y ,x) inequalities))))))
+    (values equalities inequalities)))
 
 (defun get-definitions (where-form)
   "Return bindings in reverse order from WHERE-FORM."
@@ -286,18 +319,21 @@ to zero or more CONSTRAINTS."
 (defmacro problem (&rest forms)
   (multiple-value-bind (objective maximise) (get-objective forms)
     (when (null objective) (error "Objective missing"))
-    (let ((constraints (get-constraints (subject-to-form forms)))
-          (definitions (get-definitions (where-form forms)))
-          (level (level-form forms)))
-      (when (null level) (error "Hierarchy level missing"))
-      `(let ,(operator-names-and-values
-              (list objective constraints (mapcar #'rest definitions))
-              (mapcar #'first definitions))
-         (let* ,definitions
-           (npa->sdp ,objective
-                     (list ,@constraints)
-                     ',level
-                     ,maximise))))))
+    
+    (multiple-value-bind (equalities inequalities)
+         (get-constraints (subject-to-form forms))
+      (let ((definitions (get-definitions (where-form forms)))
+            (level (level-form forms)))
+        (when (null level) (error "Hierarchy level missing"))
+        `(let ,(operator-names-and-values
+                (list objective equalities (mapcar #'rest definitions))
+                (mapcar #'first definitions))
+           (let* ,definitions
+             (npa->sdp ,objective
+                       ',level
+                       (list ,@equalities)
+                       (list ,@inequalities)
+                       ,maximise)))))))
 
 (defmacro solve-problem (&rest forms)
   `(solve (problem ,@forms)))

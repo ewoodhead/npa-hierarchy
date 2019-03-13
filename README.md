@@ -10,16 +10,15 @@ carried away with.
 The library can handle problems consisting of the maximisation or
 minimisation of the quantum expectation value of a linear combination of
 projection operators (i.e., a Bell operator) subject to zero or more equality
-constraints on the expectation values of such operators. A negative number of
-constraints is not supported. The number of parties, inputs, and outputs is
-arbitrary. It works with the [SDPA family](http://sdpa.sourceforge.net/) of
-semidefinite programming solvers.
+and inequality constraints on the expectation values of such operators. The
+number of parties, inputs, and outputs is arbitrary. It works with the [SDPA
+family](http://sdpa.sourceforge.net/) of semidefinite programming solvers.
 
 It is written in Common Lisp (currently, specifically the SBCL
 implementation), but you don't necessarily have to know Lisp in order to use
 it. It supports a notation similar to what you might see in a research
 paper. For example, the code you need to type to maximise CHSH at level 1 + A
-B of the hierarchy is just
+B of the hierarchy is
 ```
 (solve-problem
  (maximise A1 (B1 + B2) + A2 (B1 - B2))
@@ -278,7 +277,7 @@ The general format understood by the `solve-problem` macro is
 ```
 (solve-problem
  (*imise POLYNOMIAL)
- (subject-to EQUALITY-CONSTRAINTS...)
+ (subject-to CONSTRAINTS...)
  (where LOCAL-VARIABLE-BINDINGS...)
  (level LEVEL))
 ```
@@ -295,13 +294,32 @@ example using all of them is
  (level 1 + A B + A A B))
 ```
 `*imise`can be either `maximise` or `minimise`. The synonyms `maximize` and
-`minimize` are also accepted. Each constraint in the `subject-to` form needs
-to be surrounded with parentheses; this is so that the `solve-problem` macro
-can tell unambiguously where one constraint ends and the next
-begins. Constraints can also be chained, as in
+`minimize` are also accepted.
+
+Each constraint in the `subject-to` form needs to be surrounded with
+parentheses; this is so that the `solve-problem` macro can tell unambiguously
+where one constraint ends and the next begins. Constraints can also be
+chained, as in
 ```
  (subject-to (A1 (B1 + B2) = A2 (B1 - B2) = 1.4))
 ```
+Constraints can include inequalities as well as equalities, denoted by `>=`
+or `<=`. `>` and `<` are also accepted and treated the same as `>=` and
+`<=`. In a chain containing multiple relations, each relation is applied to
+the expressions immediately on its left and right and then rearranged to an
+expression equal to or lower bounded by zero. For example, a chain of the
+form
+```
+A >= B <= C = D >= E
+```
+would be translated to the following four constraints:
+```
+A - B >= 0
+C - B >= 0
+C - D = 0
+D - E >= 0
+```
+
 The `where` form lets you define local variable bindings of the form
 `variable = VALUE`, where `VALUE` can be any number or operator
 expression. For instance, the example above could just as well have been
@@ -505,14 +523,13 @@ PFEAS
 
 The `*Scale =` comment line exists because the npa-hierarchy library by
 default rescales the problem if it contains rational coefficients. In that
-case, npa-hierarchy multiplies the entire problem by the lowest common
-multiple of the denominators of all the rational coefficients so that only
-exact integer and floating point coefficients remain in the SDP. This is done
-in order to avoid a possible loss of precision when the library is used with
-high-precision versions of SDPA such as SDPA-GMP. This behaviour is
-controlled by a global variable `*scale-ratio*`. It can be disabled by
-running `(setf *scale-ratio* nil)` and reenabled with `(setf *scale-ratio*
-t)`.
+case, npa-hierarchy translates the entire SDP to one that is equivalent to
+the original, up to a scaling factor, in such a way that it contains only
+exact integer and floating point coefficients. This is done in order to avoid
+a possible loss of precision when the library is used with high-precision
+versions of SDPA such as SDPA-GMP. This behaviour is controlled by a global
+variable `*scale-ratio*`. It can be disabled by running `(setf *scale-ratio*
+nil)` and reenabled with `(setf *scale-ratio* t)`.
 
 The `problem` macro used above processes a problem in the same format as
 `solve-problem` and returns an object representing the NPA relaxation. (In
@@ -554,7 +571,7 @@ maximisation problem
 ```
 (problem
  (maximise A1 (B1 + B2) + A2 (B1 - B2))
- (level 1)
+ (level 1))
 ```
 is
 ```
