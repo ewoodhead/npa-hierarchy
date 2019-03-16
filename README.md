@@ -630,8 +630,7 @@ NPA-USER> (multiple-value-bind (primal dual status exp-values)
 <A1|2 B1|2> = 0.07322
 <B1|1 B1|2> = 0.25
 ```
-
-(The `(declare (ignore primal dual phase))` line tells Lisp not to print a
+(The `(declare (ignore primal dual status))` line tells Lisp not to print a
 warning about the variables `primal`, `dual`, and `status` being unused in
 the code.) Note that the accuracy is limited by the number of significant
 digits to which SDPA writes them in the output file. Unfortunately this is
