@@ -680,22 +680,22 @@ NPA-USER> (dolist (pair (expectation-values "cglmp3.out"))
             (destructuring-bind (monomial . value) pair
               (do-sites (s a x monomial)
                 (format t " ~a_{~d|~d}" (site->string s) a x))
-              (format t " \\rangle &\approx& ~f \\,, \\\\~%" value)))
-  \langle A_{1|1} \rangle &approx& 0.3333 \,, \\
-  \langle A_{2|1} \rangle &approx& 0.3333 \,, \\
-  \langle A_{1|2} \rangle &approx& 0.3333 \,, \\
-  \langle A_{2|2} \rangle &approx& 0.3333 \,, \\
-  \langle B_{1|1} \rangle &approx& 0.3333 \,, \\
-  \langle B_{2|1} \rangle &approx& 0.3333 \,, \\
-  \langle B_{1|2} \rangle &approx& 0.3333 \,, \\
-  \langle B_{2|2} \rangle &approx& 0.3333 \,, \\
-  \langle A_{1|1} A_{1|2} \rangle &approx& 0.1377 \,, \\
-  \langle A_{1|1} A_{2|2} \rangle &approx& 0.1377 \,, \\
-  \langle A_{2|1} A_{1|2} \rangle &approx& 0.05803 \,, \\
-  \langle A_{2|1} A_{2|2} \rangle &approx& 0.1377 \,, \\
-  \langle A_{1|1} B_{1|1} \rangle &approx& 0.2694 \,, \\
-  \langle A_{1|1} B_{2|1} \rangle &approx& 0.03734 \,, \\
-  \langle A_{1|1} B_{1|2} \rangle &approx& 0.2694 \,, \\
+              (format t " \\rangle &\\approx& ~f \\,, \\\\~%" value)))
+  \langle A_{1|1} \rangle &\approx& 0.3333 \,, \\
+  \langle A_{2|1} \rangle &\approx& 0.3333 \,, \\
+  \langle A_{1|2} \rangle &\approx& 0.3333 \,, \\
+  \langle A_{2|2} \rangle &\approx& 0.3333 \,, \\
+  \langle B_{1|1} \rangle &\approx& 0.3333 \,, \\
+  \langle B_{2|1} \rangle &\approx& 0.3333 \,, \\
+  \langle B_{1|2} \rangle &\approx& 0.3333 \,, \\
+  \langle B_{2|2} \rangle &\approx& 0.3333 \,, \\
+  \langle A_{1|1} A_{1|2} \rangle &\approx& 0.1377 \,, \\
+  \langle A_{1|1} A_{2|2} \rangle &\approx& 0.1377 \,, \\
+  \langle A_{2|1} A_{1|2} \rangle &\approx& 0.05803 \,, \\
+  \langle A_{2|1} A_{2|2} \rangle &\approx& 0.1377 \,, \\
+  \langle A_{1|1} B_{1|1} \rangle &\approx& 0.2694 \,, \\
+  \langle A_{1|1} B_{2|1} \rangle &\approx& 0.03734 \,, \\
+  \langle A_{1|1} B_{1|2} \rangle &\approx& 0.2694 \,, \\
 ; 81 more lines like this printed.
 ```
 The `do-sites` macro used here loops over all of the site (party), output,
