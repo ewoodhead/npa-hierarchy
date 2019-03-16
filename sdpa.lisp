@@ -23,9 +23,9 @@ files.")
   "Default name to use for SDPA files, not including the .dat-s and .out
 extensions.")
 
-(defparameter *delete-sdpa-tmp-files* t
-  "Controls whether temporary SDPA files are deleted after SDPA has been
-run interactively.")
+(defparameter *overwrite-tmp-files* nil
+  "Controls whether it is OK to write the SDPA input file if the default
+temporary filename is being used and a file with that name already exists.")
 
 (defparameter *scale-ratio* t
   "Control whether problems with rational coefficients are scaled to make
@@ -34,6 +34,14 @@ them integers.")
 (defparameter *comment-length* 77
   "Maximum length of a comment line in the SDPA input file, not including the
 '*' at the beginning.")
+
+(defparameter *read-comments* nil
+  "If non-null, read comments from SDPA output file and return them by
+default.")
+
+(defparameter *read-xvec* nil
+  "If non-null, read xVec values from SDPA output file and return them by
+default.")
 
 (defclass sdp-problem ()
   ((costs
@@ -127,17 +135,10 @@ not equal."
 (defun write-comments (comments &optional (stream *standard-output*))
   (let ((*print-right-margin* *comment-length*))
     (dolist (comment comments)
-      (destructuring-bind (label . objects) comment
-        (let ((comment-lines (split-sequence
-                              #\Newline
-                              (format nil
-                                      "~a~< = ~;{~@{~a~^,~:_ ~}~;}~:>"
-                                      label
-                                      objects))))
-          (dolist (line comment-lines)
-            (write-char #\* stream)
-            (write-string line stream)
-            (end-line stream)))))))
+      (dolist (line (split-sequence #\Newline (prin1-to-string comment)))
+        (write-char #\* stream)
+        (write-string line stream)
+        (end-line stream)))))
 
 (defun export-problem (problem &optional (stream *standard-output*))
   "Write PROBLEM to STREAM in the sparse input format understood by SDPA."
@@ -155,13 +156,13 @@ not equal."
                (formatln (control-string &rest format-arguments)
                  (apply #'format stream control-string format-arguments)
                  (end-line stream)))
-          (formatln "*Offset = ~a" (dsign (first costs)))
-          (formatln "*Scale = ~d" scale)
-          (formatln "*Maximise = ~a" maximise)
           (formatln "*Solution = ~a."
                     (if maximise
                         "-(SDP_sol / Scale + Offset)"
                         "SDP_sol / Scale + Offset"))
+          (formatln "*Offset = ~a" (dsign (first costs)))
+          (formatln "*Scale = ~d" scale)
+          (formatln "*Maximise = ~a" maximise)
           (write-comments comments stream)
           (formatln "  ~d = mDIM" (1- ncosts))
           (formatln "  ~d = nBLOCK" nblocks)
@@ -175,18 +176,20 @@ not equal."
               do (write-constraint-matrix
                   n constraint stream scales))))))
 
-(defun export-to-file (filename problem &optional (deletep t))
+(defun export-to-file (filename problem &optional (overwrite t))
   "Write PROBLEM to file named FILENAME in format expected by SDPA."
   (with-open-file (stream filename :direction :output
-                          :if-exists (if deletep :supersede :error))
+                          :if-exists (if overwrite :supersede :error))
     (export-problem problem stream)))
 
-(defun run-sdpa (in-file out-file &optional (output nil))
+(defun run-sdpa (in-file out-file &optional (output nil) (overwrite t))
   "Run SDPA with input file IN-FILE and output file OUT-FILE."
+  (setf in-file (merge-pathnames in-file)
+        out-file (merge-pathnames out-file))
+  (unless (or overwrite (not (probe-file out-file)))
+    (error "Output file ~s already exists." out-file))
   (let ((invocation (format nil "~a -ds ~a -o ~a"
-                            *solver*
-                            (merge-pathnames in-file)
-                            (merge-pathnames out-file)))
+                            *solver* in-file out-file))
         (mode (flet ((param-opt (path)
                        (if (probe-file path)
                            (format nil " -p ~a" path)
@@ -231,40 +234,98 @@ not equal."
 in the list LABELS."
   (loop for l in labels collect (get-item l stream)))
 
-(defun extract-from-stream (&optional (stream *standard-input*))
+(defun read-comments (stream)
+  (with-input-from-string
+      (s (format nil "~{~a~^ ~}"
+                 (loop for c = (read-char stream)
+                       while (char= c #\*)
+                       collect (read-line stream)
+                       finally (unread-char c stream))))
+    (loop with eof = '#:eof
+          for object = (read s nil eof)
+          until (eq object eof)
+          collect object)))
+
+(defun read-comments-from-stream (stream)
+  (search-forward "*Maximise" stream)
+  (read-line stream)
+  (read-comments stream))
+
+(defun extract-comments (&optional (source (format nil "~a.out"
+                                                   *tmp-file-rootname*)))
+  "Extract additional objects in comment lines from SOURCE. SOURCE should be
+either a file name or input stream."
+  (etypecase source
+    (stream (read-comments-from-stream source))
+    ((or pathname string) (with-open-file (s source :direction :input)
+                           (read-comments-from-stream s)))))
+
+(defun read-xvec-from-stream (stream)
+  (search-forward "xVec" stream)
+  (search-forward "{" stream)
+  (mapcar #'read-from-string
+          (split-sequence #\, (string-right-trim "} " (read-line stream)))))
+
+(defun extract-xvec (&optional (source
+                                (format nil "~a.out" *tmp-file-rootname*)))
+  "Read xVec from SOURCE. SOURCE should be a file name or input stream."
+  (etypecase source
+    (stream (read-xvec-from-stream source))
+    ((or pathname string) (with-open-file (s source :direction :input)
+                            (read-xvec-from-stream s)))))
+
+(defun extract-from-stream (&optional (stream *standard-input*)
+                              (read-xvec *read-xvec*)
+                              (read-comments *read-comments*))
   "Extract and return primal and dual solutions and status from SDPA output
 read from STREAM."
   (let ((*read-default-float-format* *sdpa-float-type*))
-    (destructuring-bind (offset scale maximise phase primal dual)
-        (get-items '("*Offset" "*Scale" "*Maximise"
-                     "phase.value" "objValPrimal" "objValDual")
-                   stream)
+    (destructuring-bind (offset scale maximise)
+        (get-items '("*Offset" "*Scale" "*Maximise") stream)
       (setf offset (rational offset))
-      (flet ((adjust (x)
-               (setf x (coerce (+ (/ (rational x) scale) offset)
-                               'double-float))
-               (if maximise (- x) x)))
-          (values (adjust primal) (adjust dual) phase)))))
+      (let ((xvec ())
+            (comments ()))
+        (when read-comments
+          (setf comments (read-comments stream)))
+        (destructuring-bind (phase primal dual)
+           (get-items '("phase.value" "objValPrimal" "objValDual") stream)
+         (flet ((adjust (x)
+                  (setf x (coerce (+ (/ (rational x) scale) offset)
+                                  'double-float))
+                  (if maximise (- x) x)))
+           (setf primal (adjust primal)
+                 dual (adjust dual))
+           (when read-xvec
+             (setf xvec (read-xvec-from-stream stream)))
+           (cond
+             (read-comments (values primal dual phase xvec comments))
+             (read-xvec (values primal dual phase xvec))
+             (t (values primal dual phase)))))))))
 
-(defun extract-solution (&optional (filename-or-stream *standard-input*))
+(defun extract-solution (&optional (filename-or-stream *standard-input*)
+                           (read-xvec *read-xvec*)
+                           (read-comments *read-comments*))
   "Extract and return primal and dual solutions and status from SDPA output
 read from file named FILENAME."
   (if (streamp filename-or-stream)
-      (extract-from-stream filename-or-stream)
+      (extract-from-stream filename-or-stream read-xvec read-comments)
       (with-open-file (s filename-or-stream :direction :input)
-        (extract-from-stream s))))
+        (extract-from-stream s read-xvec read-comments))))
 
-(defun solve (problem &optional (fname *tmp-file-rootname*)
-                        (delete-files *delete-sdpa-tmp-files*))
+(defun solve (problem &optional (fname *tmp-file-rootname* fname-supplied-p)
+                        (overwrite (or *overwrite-tmp-files*
+                                       fname-supplied-p))
+                        (delete-files (not (or *overwrite-tmp-files*
+                                               fname-supplied-p))))
   "Solve PROBLEM. This consists of writing the specified problem as an SDPA
 input file, running SDPA on it, and extracting from the output file and
 returning the primal and dual solutions and a status indicator."
   (let ((in-file (make-pathname :name fname :type "dat-s"))
 	(out-file (make-pathname :name fname :type "out")))
-    (export-to-file in-file problem nil)
+    (export-to-file in-file problem overwrite)
     (unwind-protect
          (progn
-           (run-sdpa in-file out-file)
+           (run-sdpa in-file out-file nil overwrite)
            (extract-solution out-file))
       (when delete-files
         (delete-file in-file)

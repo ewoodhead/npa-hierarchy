@@ -1,5 +1,8 @@
 (in-package :npa-hierarchy)
 
+(defparameter *return-expectation-values* nil
+  "If non-null, return the expectation values of monomials by default.")
+
 (defun projectors (operators &optional (sites ()))
   "Returns a set of all (non-identity) projectors found in the argument
 OPERATORS (a monomial or polynomial or a list of operators). The second
@@ -218,9 +221,10 @@ are modified and must be a polynomial and list of polynomials, respectively."
               for moment = (gethash mon moment-matrices)
               collect (coeff mon objective) into costs
               collect moment into moments
-              finally (return (values costs moments (rest monomials))))
+              finally (return (values costs moments monomials)))
       (sdp-problem costs moments maximise
-                   (list (cons "Monomials" monomials))))))
+                   (list :monomials
+                         (mapcar #'princ-to-string (rest monomials)))))))
 
 (defun npa->sdp (objective level
                  &optional (equalities ()) (inequalities ()) (maximise nil))
@@ -319,8 +323,7 @@ or polynomial >= 0."
 
 (defmacro problem (&rest forms)
   (multiple-value-bind (objective maximise) (get-objective forms)
-    (when (null objective) (error "Objective missing"))
-    
+    (when (null objective) (error "Objective missing"))    
     (multiple-value-bind (equalities inequalities)
          (get-constraints (subject-to-form forms))
       (let ((definitions (get-definitions (where-form forms)))
@@ -336,5 +339,62 @@ or polynomial >= 0."
                        (list ,@inequalities)
                        ,maximise)))))))
 
+(defun monomials->alist (monomials values)
+  (mapcar (lambda (m x)
+            (cons (reduce #'p* (mapcar #'operator
+                                       (split-sequence #\Space m)))
+                  x))
+          monomials values))
+
+(defun npa-solve (problem)
+  (let ((*read-comments* *return-expectation-values*)
+        (*read-xvec* *return-expectation-values*))
+    (if *return-expectation-values*
+        (multiple-value-bind (primal dual phase xvec comments)
+            (solve problem)
+          (values primal dual phase
+                  (monomials->alist (getf comments :monomials) xvec)))
+        (solve problem))))
+
 (defmacro solve-problem (&rest forms)
-  `(solve (problem ,@forms)))
+  `(npa-solve (problem ,@forms)))
+
+(defun expectation-values (&optional (source (format nil "~a.out"
+                                                     *tmp-file-rootname*)))
+  "Return an alist of mononials and their expectation values from SOURCE."
+  (flet ((read-exp-vals (stream)
+           (monomials->alist
+            (getf (read-comments-from-stream stream) :monomials)
+            (read-xvec-from-stream stream))))
+    (etypecase source
+      (list source)
+      (stream (read-exp-vals source))
+      ((or pathname string) (with-open-file (s source :direction :input)
+                              (read-exp-vals s))))))
+
+(defun write-expectation-values (&optional (destination *standard-output*)
+                                   (source (format nil "~a.out"
+                                                   *tmp-file-rootname*)))
+  "Print expectation values of monomials obtained from SOURCE to
+DESTINATION."
+  (flet ((write-exps (stream)
+           (dolist (pair (expectation-values source))
+             (destructuring-bind (m . x) pair
+               (format stream "~@<<~a>~_ = ~a~:>~%" m x)))))
+    (when (eq destination t)
+      (setf destination *terminal-io*))
+    (etypecase destination
+      (stream (write-exps destination))
+      ((or pathname string) (with-open-file (s destination :direction :output
+                                               :if-exists :supersede)
+                              (write-exps s)))
+      (null (with-output-to-string (s)
+              (write-exps s)))))
+  (values))
+
+(defun print-expectation-values (&optional
+                                   (source (format nil "~a.out"
+                                                   *tmp-file-rootname*)))
+  "Print expectation values of monomials obtained from SOURCE to standard
+output."
+  (write-expectation-values *standard-output* source))

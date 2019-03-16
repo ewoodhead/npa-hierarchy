@@ -54,6 +54,7 @@ with:
   pp. 601-634](https://doi.org/10.1007/978-1-4614-0769-0_21).
 
 
+
 ## Setup
 
 The following installation instructions are quite detailed since I assume
@@ -83,6 +84,7 @@ If you're using Microsoft Windows, the following procedure seems to work:
 - Start Portacle and run `(ql:quickload :npa-hierarchy)` at the Lisp prompt
   to install the dependencies.
 
+
 ### Install SDPA and SBCL
 
 If you want to use this library, you will need SDPA installed in your `$PATH`
@@ -98,6 +100,7 @@ SDPA](http://sdpa.sourceforge.net/download.html) and compile it from source
 yourself. Compilable versions of SDPA-DD and SDPA-QD can be found at
 https://github.com/denisrosset/sdpa-dd and
 https://github.com/denisrosset/sdpa-qd.
+
 
 ### Install Quicklisp and npa-hierarchy
 
@@ -141,6 +144,7 @@ PDFEAS
 *
 ```
 (Press Ctrl-D to escape.)
+
 
 ### Configure Emacs (optional but recommended)
 
@@ -195,6 +199,7 @@ listed on these websites will work for you:
 - https://lispcookbook.github.io/cl-cookbook/editor-support.html
 - https://www.cliki.net/Development
 
+
 ### Updating
 
 If you install an updated version of this library, it's a good idea to update
@@ -209,6 +214,7 @@ You can then load the new version by running `(ql:quickload :npa-hierarchy)`.
 If you're using Emacs and want to check for updates to SLIME or other Emacs
 packages, do `M-x package-list-packages` and then (capital) `U` to start
 installing updates if there are any.
+
 
 
 ## Using the library
@@ -235,6 +241,7 @@ npa-user`. This puts you in a working package that imports
 the most important symbols from other packages in the library, so you don't
 need to prefix them with their package names (so, for example, you can type
 `solve-problem` instead of `npa-hierarchy:solve-problem`).
+
 
 ### Examples
 
@@ -476,6 +483,7 @@ NPA-USER> (+ 1 (sqrt (/ 11.0 3)))
 2.914854215512676
 ```
 
+
 ### Running SDPA manually
 
 You may want to export a problem without running SDPA on it, for example to
@@ -562,38 +570,106 @@ constraints (polynomials whose expectation values we want to set to zero) and
 the fourth, `t`, indicates we want to maximise the expectation value of the
 objective polynomial.
 
-The actual job of the `problem` macro is to scan the problem description for
-symbols like `A1` or `A1/1` that look like a dichotomic operator or
-projector, create appropriate local variable bindings for them, and generate
-code that will compute the objective and constraint polynomials and call the
-`npa->sdp` function on them. For example, the macroexpansion of the CHSH
-maximisation problem
+It is possible to run SDPA from Lisp itself, if you want to do this for some
+reason. The function `run-sdpa` will run SDPA with specified input and output
+file names:
 ```
-(problem
- (maximise A1 (B1 + B2) + A2 (B1 - B2))
- (level 1))
+(run-sdpa "cglmp3.dat-s" "cglmp3.out")
 ```
-is
+
+This works if you have already generated the input file, such as by calling
+the `export-to-file` function described above.
+
+
+### Getting the expectation values
+
+As well as the primal and dual solutions, it is possible to extract and
+report the expectation values of individual monomials for the solution found
+by SDPA. The simplest way to do this is to set the value of the global
+variable `*return-expectation-values*` to true:
 ```
-(let ((A2 (diop 0 2))
-      (B2 (diop 1 2))
-      (B1 (diop 1 1))
-      (A1 (diop 0 1)))
-  (let* ()
-    (npa->sdp (p+ (p* A1 (p+ B1 B2)) (p* A2 (p- B1 B2)))
-              (list)
-              '(1)
-              t)))
+(setf *return-expectation-values* t)
 ```
-(You can see what the macroexpansion for a problem is by calling the
-`macroexpand-1` or `macroexpand` functions in Lisp or doing C-c M-m in
-Emacs/SLIME.) In the above expansion, `diop` is a function that returns a
-polynomial representing a dichotomic operator (for example, `(diop 0 1)`
-returns `#<POLYNOMIAL -Id + 2 A1|1>`) and `p+`, `p-`, and `p*` are functions
-that add, subtract, and multiply numbers and operators. The inner `let*` has
-an empty list of variable bindings because the problem in this case lacks a
-`where` form. The second argument to `npa->sdp` is just `(list)` (which
-returns an empty list) because there was no `subject-to` form.
+This will cause the `solve-problem` macro and optimisation functions like
+`maximise` to return an association list of monomials and their expectation
+values. An example, maximising CHSH at level one, now looks like this:
+```
+NPA-USER> (solve-problem
+           (maximise A1 (B1 + B2) + A2 (B1 - B2))
+           (level 1))
+2.828427087117473
+2.8284272385370617
+PDFEAS
+((#<A1|1> . 0.5) (#<A1|2> . 0.5) (#<B1|1> . 0.5) (#<B1|2> . 0.5)
+ (#<A1|1 A1|2> . 0.25) (#<A1|1 B1|1> . 0.4268) (#<A1|1 B1|2> . 0.4268)
+ (#<A1|2 B1|1> . 0.4268) (#<A1|2 B1|2> . 0.07322) (#<B1|1 B1|2> . 0.25))
+ ```
+
+This behaviour is disabled by default because the list of expectation values
+rapidly gets very long for large problems; the npa-hierarchy only returns
+this information if you explicitly request it. The library includes two
+helper functions, `print-expectation-values` and `write-expectation-values`,
+that can print out the expectation values in a nicer format. The first one,
+`print-expectation-values`, simply prints the expectation values to standard
+output:
+```
+NPA-USER> (multiple-value-bind (primal dual status exp-values)
+              (solve-problem
+               (maximise A1 (B1 + B2) + A2 (B1 - B2))
+               (level 1))
+            (declare (ignore primal dual status))
+            (print-expectation-values exp-values))
+<A1|1> = 0.5
+<A1|2> = 0.5
+<B1|1> = 0.5
+<B1|2> = 0.5
+<A1|1 A1|2> = 0.25
+<A1|1 B1|1> = 0.4268
+<A1|1 B1|2> = 0.4268
+<A1|2 B1|1> = 0.4268
+<A1|2 B1|2> = 0.07322
+<B1|1 B1|2> = 0.25
+```
+
+(The `(declare (ignore primal dual phase))` line tells Lisp not to print a
+warning about the variables `primal`, `dual`, and `status` being unused in
+the code.) Note that the accuracy is limited by the number of significant
+digits to which SDPA writes them in the output file. Unfortunately this is
+hard-coded into the solver and can't be changed without recompiling SDPA.
+
+The argument to `print-expectation-values` can alternatively be a string or
+pathname, in which case the function will interpret it as the name of an SDPA
+output file and attempt to extract the expectation values from it. For
+example, if you ran the CGLMP maximisation example from the previous section
+you could print the values like this:
+```
+NPA-USER> (print-expectation-values "cglmp3.out")
+<A1|1> = 0.3333
+<A2|1> = 0.3333
+<A1|2> = 0.3333
+<A2|2> = 0.3333
+<B1|1> = 0.3333
+<B2|1> = 0.3333
+<B1|2> = 0.3333
+<B2|2> = 0.3333
+<A1|1 A1|2> = 0.1377
+<A1|1 A2|2> = 0.1377
+<A2|1 A1|2> = 0.05803
+<A2|1 A2|2> = 0.1377
+<A1|1 B1|1> = 0.2694
+<A1|1 B2|1> = 0.03734
+<A1|1 B1|2> = 0.2694
+; 81 more lines like this.
+```
+
+The `write-expectation-values` function is similar but lets you explicitly
+say where you want the output to go (a stream or file). We could use it to
+write the previous output into a text file instead of showing it at the
+prompt:
+```
+(write-expectation-values "cglmp3_exp_values.txt" "cglmp3.out")
+```
+
 
 ### Plotting
 
@@ -651,6 +727,7 @@ A lot of the whitespace in the examples above is mandatory:
 Where whitespace is needed it doesn't matter what kind (spaces, tabs, or
 newlines).
 
+
 ### Floating-point precision
 
 Lisp has single- and double-precision floating-point numbers. Unlike most
@@ -664,6 +741,7 @@ single-precision result if you call them with an integer argument. Make sure
 to call these functions with a double-precision argument if you want a
 double-precision result.
 
+
 ### SBCL init file
 
 SBCL runs code in the file .sbclrc in your home directory on startup. You can
@@ -675,6 +753,7 @@ planning to use Lisp for the npa-hierarchy library, you could add
 (asdf:load-system :npa-hierarchy)
 (in-package :npa-user)
 ```
+
 
 ### Some Lisp resources
 
@@ -696,10 +775,12 @@ These resources may also be useful:
   [here](https://norvig.com/python-lisp.html).
 
 
+
 ## Some computed cases
 
 The tables below list upper bounds on the Froissart (a.k.a. I3322) and CGLMP
 expectation values computed using SDPA-DD.
+
 
 ### Froissart
 
@@ -718,6 +799,7 @@ At levels 2-5, the digits that are the same for the primal and dual solutions
 are listed, followed by their next two digits (rounded outwards) in brackets,
 e.g. 1.23(45-67) would mean the primal is greater than 1.2345 and the dual is
 less than 1.2367.
+
 
 ### CGLMP
 

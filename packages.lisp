@@ -45,11 +45,14 @@
   (:use :common-lisp :alexandria :inferior-shell :block-matrix)
   (:import-from :split-sequence :split-sequence)
   (:export :*solver* :*mode* :default :stable :fast
-           :*threads* :*sdpa-float-type* :*tmp-file-rootname*
-           :*delete-sdpa-tmp-files* :*scale-ratio* :*comment-length*
+           :*threads* :*sdpa-float-type*
+           :*tmp-file-rootname* :*overwrite-tmp-files*
+           :*scale-ratio* :*comment-length* :*read-comments* :*read-xvec*
            :sdp-problem :costs :constraints :maximise :comments
            :sdp-costs :sdp-constraints :sdp-maximise :sdp-comments
            :offset :export-problem :export-to-file :run-sdpa
+           :read-comments-from-stream :extract-comments
+           :read-xvec-from-stream :extract-xvec
            :extract-solution :extract-from-file :solve))
 
 (defpackage :npa-hierarchy
@@ -58,9 +61,13 @@
   (:import-from :alexandria :hash-table-keys
                 :if-let :when-let :assoc-value :maxf
                 :sequence-of-length-p)
-  (:export :translate-to-sdp :monomials-at-level
+  (:export :*return-expectation-values*
+           :translate-to-sdp :monomials-at-level
            :npa-moments :moments-at-npa-level
-           :npa->sdp :optimise :minimise :maximise :problem :solve-problem))
+           :npa->sdp :optimise :minimise :maximise :problem
+           :npa-solve :solve-problem
+           :expectation-values :write-expectation-values
+           :print-expectation-values))
 
 (defpackage :npa-user
   (:use :common-lisp :operators :npa-hierarchy
