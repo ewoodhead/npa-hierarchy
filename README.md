@@ -658,7 +658,7 @@ NPA-USER> (print-expectation-values "cglmp3.out")
 <A1|1 B1|1> = 0.2694
 <A1|1 B2|1> = 0.03734
 <A1|1 B1|2> = 0.2694
-; 81 more lines like this.
+; 81 more lines like this printed.
 ```
 
 The `write-expectation-values` function is similar but lets you explicitly
@@ -668,6 +668,51 @@ prompt:
 ```
 (write-expectation-values "cglmp3_exp_values.txt" "cglmp3.out")
 ```
+
+You can extract the monomials and their expectation values from a file
+without printing them by calling the `expectation-values` function. This may
+be useful if you want to print them in your own custom format. As an
+illustration, the following code prints the expectation values of monomials
+in a format that could be copied and pasted into a LaTeX document:
+```
+NPA-USER> (dolist (pair (expectation-values "cglmp3.out"))
+            (write-string "  \\langle")
+            (destructuring-bind (monomial . value) pair
+              (do-sites (s a x monomial)
+                (format t " ~a_{~d|~d}" (site->string s) a x))
+              (format t " \\rangle &\approx& ~a \\, \\\\~%" value)))
+  \langle A_{1|1} \rangle &approx& 0.3333 \, \\
+  \langle A_{2|1} \rangle &approx& 0.3333 \, \\
+  \langle A_{1|2} \rangle &approx& 0.3333 \, \\
+  \langle A_{2|2} \rangle &approx& 0.3333 \, \\
+  \langle B_{1|1} \rangle &approx& 0.3333 \, \\
+  \langle B_{2|1} \rangle &approx& 0.3333 \, \\
+  \langle B_{1|2} \rangle &approx& 0.3333 \, \\
+  \langle B_{2|2} \rangle &approx& 0.3333 \, \\
+  \langle A_{1|1} A_{1|2} \rangle &approx& 0.1377 \, \\
+  \langle A_{1|1} A_{2|2} \rangle &approx& 0.1377 \, \\
+  \langle A_{2|1} A_{1|2} \rangle &approx& 0.05803 \, \\
+  \langle A_{2|1} A_{2|2} \rangle &approx& 0.1377 \, \\
+  \langle A_{1|1} B_{1|1} \rangle &approx& 0.2694 \, \\
+  \langle A_{1|1} B_{2|1} \rangle &approx& 0.03734 \, \\
+  \langle A_{1|1} B_{1|2} \rangle &approx& 0.2694 \, \\
+; 81 more lines like this printed.
+```
+The `do-sites` macro used here loops over all of the site (party), output,
+and input numbers in a monomial. The `site->string` function used converts
+site numbers to strings:
+```
+NPA-USER> (loop for k from 0 below 100 collect (site->string k))
+("A" "B" "C" "D" "E" "F" "G" "H" "I" "J" "K" "L" "M" "N" "O" "P" "Q" "R" "S"
+ "T" "U" "V" "W" "X" "Y" "Z" "AA" "AB" "AC" "AD" "AE" "AF" "AG" "AH" "AI" "AJ"
+ "AK" "AL" "AM" "AN" "AO" "AP" "AQ" "AR" "AS" "AT" "AU" "AV" "AW" "AX" "AY"
+ "AZ" "BA" "BB" "BC" "BD" "BE" "BF" "BG" "BH" "BI" "BJ" "BK" "BL" "BM" "BN"
+ "BO" "BP" "BQ" "BR" "BS" "BT" "BU" "BV" "BW" "BX" "BY" "BZ" "CA" "CB" "CC"
+ "CD" "CE" "CF" "CG" "CH" "CI" "CJ" "CK" "CL" "CM" "CN" "CO" "CP" "CQ" "CR"
+ "CS" "CT" "CU" "CV")
+```
+There is a corresponding `string->site` function that does the opposite
+conversion.
 
 
 ### Plotting
