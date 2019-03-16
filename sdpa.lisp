@@ -207,7 +207,8 @@ not equal."
         (threads (if (typep *threads* '(integer 1 *))
                      (format nil " -numThreads ~a" *threads*)
                      "")))
-    (run (format nil "~a~a~a" invocation mode threads) :output output)))
+    (run (format nil "~a~a~a" invocation mode threads) :output output)
+    (values)))
 
 (defun search-forward (string stream)
   "Advance position in STREAM to just after the first instance of STRING."
