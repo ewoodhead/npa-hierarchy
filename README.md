@@ -286,11 +286,12 @@ The general format understood by the `solve-problem` macro is
  (*imise POLYNOMIAL)
  (subject-to CONSTRAINTS...)
  (where LOCAL-VARIABLE-BINDINGS...)
- (level LEVEL))
+ (level LEVEL)
+ (name NAME))
 ```
-Each of the forms should be surrounded with parentheses, as shown. The
-`*imise` and `level` forms are required. The other two are optional. An
-example using all of them is
+Each of the forms should be surrounded with parentheses, as shown, and they
+can appear in any order. The `*imise` and `level` forms are required. The
+other three are optional. An example using all of them is
 ```
 (solve-problem
  (maximise A1/1)
@@ -298,7 +299,8 @@ example using all of them is
              (A2 (B1 - B2) = y))
  (where (x = 1.4)
         (y = 1.4))
- (level 1 + A B + A A B))
+ (level 1 + A B + A A B)
+ (name "pguess"))
 ```
 `*imise`can be either `maximise` or `minimise`. The synonyms `maximize` and
 `minimize` are also accepted.
@@ -353,6 +355,22 @@ will also work. Like in the `subject-to` form, each assignment needs to be
 surrounded with parentheses. Unlike the `subject-to` form, they cannot be
 chained. Things like `(where (x = y = 1.4))` will not work. `with` is
 accepted as a synonym for `where`.
+
+In order to run SDPA, `solve-problem` needs to write the SDP relaxation into
+an input file and tell SDPA what file name it should use for the output
+file. This implies some decisions:
+- What file names to use?
+- Is it OK to overwrite files that already 
+If you don't specify a name using the `name` form, `solve-problem` by default
+uses the names `.npa_sdpa_tmp.dat-s` and `.npa_sdpa_tmp.out` for the input
+and output files. It also raises an error if either of these files already
+exists and deletes them after it has finished, so that you won't get an error
+the next time you solve a problem. Specifying a name in the `name` form
+overrides this behaviour: if the name given is a string, `solve-problem`
+appends the suffixes `".dat-s"` and `".out"` and uses these as the input and
+output file names (for example, `"pguess.dat-s"` and `"pguess.out"`); it will
+also assume it is fine to overwrite these files if they already exist and it
+won't delete them afterwards.
 
 Problems can involve more than two parties, inputs, and outputs. For example,
 the three-party Mermin expression can be maximised like this:
@@ -585,14 +603,15 @@ the `export-to-file` function described above.
 
 As well as the primal and dual solutions, it is possible to extract and
 report the expectation values of individual monomials for the solution found
-by SDPA. The simplest way to do this is to set the value of the global
+by SDPA. One way to do this is to set the value of the global
 variable `*return-expectation-values*` to true:
 ```
 (setf *return-expectation-values* t)
 ```
 This will cause the `solve-problem` macro and optimisation functions like
 `maximise` to return an association list of monomials and their expectation
-values. An example, maximising CHSH at level one, now looks like this:
+values as a fourth return values. An example, maximising CHSH at level one,
+now looks like this:
 ```
 NPA-USER> (solve-problem
            (maximise A1 (B1 + B2) + A2 (B1 - B2))
@@ -604,14 +623,13 @@ PDFEAS
  (#<A1|1 A1|2> . 0.25) (#<A1|1 B1|1> . 0.4268) (#<A1|1 B1|2> . 0.4268)
  (#<A1|2 B1|1> . 0.4268) (#<A1|2 B1|2> . 0.07322) (#<B1|1 B1|2> . 0.25))
  ```
-
 This behaviour is disabled by default because the list of expectation values
-rapidly gets very long for large problems; the npa-hierarchy only returns
-this information if you explicitly request it. The library includes two
-helper functions, `print-expectation-values` and `write-expectation-values`,
-that can print out the expectation values in a nicer format. The first one,
-`print-expectation-values`, simply prints the expectation values to standard
-output:
+rapidly gets very long for large problems.
+
+npa-hierarchy also includes two functions, `print-expectation-values` and
+`write-expectation-values`, that can print out the expectation values in a
+nicer format. The first one, `print-expectation-values`, simply prints the
+expectation values to standard output:
 ```
 NPA-USER> (multiple-value-bind (primal dual status exp-values)
               (solve-problem
@@ -713,6 +731,12 @@ NPA-USER> (loop for k from 0 below 100 collect (site->string k))
 ```
 There is a corresponding `string->site` function that does the opposite
 conversion.
+
+For all three functions `expectation-values`, `print-expectation-values`, and
+`write-expectation-values`, the argument indicating the source is
+optional. If it is omitted, the default output file name is used. Obviously,
+this will only work if the output file is still there on your file system,
+for example, if you ran `solve-problem` with a `(name t)` form.
 
 
 ### Plotting

@@ -315,9 +315,7 @@ read from file named FILENAME."
 
 (defun solve (problem &optional (fname *tmp-file-rootname* fname-supplied-p)
                         (overwrite (or *overwrite-tmp-files*
-                                       fname-supplied-p))
-                        (delete-files (not (or *overwrite-tmp-files*
-                                               fname-supplied-p))))
+                                       fname-supplied-p)))
   "Solve PROBLEM. This consists of writing the specified problem as an SDPA
 input file, running SDPA on it, and extracting from the output file and
 returning the primal and dual solutions and a status indicator."
@@ -328,6 +326,6 @@ returning the primal and dual solutions and a status indicator."
          (progn
            (run-sdpa in-file out-file nil overwrite)
            (extract-solution out-file))
-      (when delete-files
+      (unless overwrite
         (delete-file in-file)
         (delete-file out-file)))))

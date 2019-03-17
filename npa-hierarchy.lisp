@@ -346,7 +346,7 @@ or polynomial >= 0."
                   x))
           monomials values))
 
-(defun npa-solve (problem)
+(defun npa-solve (problem &optional (name nil))
   (let ((*read-comments* *return-expectation-values*)
         (*read-xvec* *return-expectation-values*))
     (if *return-expectation-values*
@@ -354,10 +354,19 @@ or polynomial >= 0."
             (solve problem)
           (values primal dual phase
                   (monomials->alist (getf comments :monomials) xvec)))
-        (solve problem))))
+        (if name
+            (solve problem name)
+            (solve problem)))))
+
+(defun get-name (forms)
+  (first (find-form forms "NAME")))
 
 (defmacro solve-problem (&rest forms)
-  `(npa-solve (problem ,@forms)))
+  (if-let (name (get-name forms))
+    `(npa-solve (problem ,@forms) ,(if (eq name t)
+                                       *tmp-file-rootname*
+                                       name))
+    `(npa-solve (problem ,@forms))))
 
 (defun expectation-values (&optional (source (format nil "~a.out"
                                                      *tmp-file-rootname*)))
