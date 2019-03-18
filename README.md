@@ -360,7 +360,8 @@ In order to run SDPA, `solve-problem` needs to write the SDP relaxation into
 an input file and tell SDPA what file name it should use for the output
 file. This implies some decisions:
 - What file names to use?
-- Is it OK to overwrite files that already 
+- Should these files be overwritten if they already exist?
+
 If you don't specify a name using the `name` form, `solve-problem` by default
 uses the names `.npa_sdpa_tmp.dat-s` and `.npa_sdpa_tmp.out` for the input
 and output files. It also raises an error if either of these files already
