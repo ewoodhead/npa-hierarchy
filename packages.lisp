@@ -7,7 +7,8 @@
 
 (defpackage :operators
   (:use :common-lisp :npa-utilities)
-  (:import-from :alexandria :with-gensyms :once-only :if-let :when-let
+  (:import-from :alexandria :alist-hash-table
+                :with-gensyms :once-only :if-let :when-let
                 :hash-table-keys :sequence-of-length-p)
   (:export :monomial :monomial-p :projector :probability :p
            :monomial-hash-table

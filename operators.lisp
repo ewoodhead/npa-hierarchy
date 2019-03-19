@@ -1035,13 +1035,16 @@ LIST does not start with a '+' or '-' it is treated as if it started with a
 
 (declaim (ftype function expand-expr))
 
+(defun expand-exprs (exprs &optional (expand-funcalls nil))
+  (loop for e in exprs collect (expand-expr e expand-funcalls)))
+
 (defun expand+ (expr)
   "Translate additive expression EXPR from infix to prefix notation. For
 example, (EXPAND+ '(1 + 2 - 3 - 4)) => (P- (P+ 1 2) 3 4). The subexpressions
 E in EXPR are recursively expanded according to (EXPAND-EXPR E NIL)."
   (multiple-value-bind (pos neg) (+or-sep expr)
-    (let ((pos (mapcar #'expand-expr pos))
-	  (neg (mapcar #'expand-expr neg)))
+    (let ((pos (expand-exprs pos))
+	  (neg (expand-exprs neg)))
       (flet ((+expr (exprs)
 	       (if (list-of-length-p exprs 1)
 		   (first exprs)
@@ -1054,27 +1057,157 @@ E in EXPR are recursively expanded according to (EXPAND-EXPR E NIL)."
 (defun expand* (expr)
   "Expand EXPR treating it as a multiplicative expression. This expands the
 subexpressions E in EXPR by calling (EXPAND-EXPR E T) then prepends P*."
-   (cons 'p* (loop for e in expr collect (expand-expr e t))))
+   (cons 'p* (expand-exprs expr t)))
+
+(defvar *functions* ())
+
+(defmacro with-functions (functions &body body)
+  `(let ((*functions* (union ,functions *functions* :test #'eq)))
+     ,@body))
 
 (defun funcall-p (expr)
   "Return T if EXPR looks like a function or operator call, i.e., if EXPR is
 a list whose first element is a symbol for which FBOUNDP returns true."
   (and (listp expr)
-       (let ((item (first expr)))
-         (and (symbolp item) (fboundp item)))))
+       (let ((name (first expr)))
+         (and (symbolp name)
+              (or (fboundp name)
+                  (member name *functions* :test #'eq))))))
 
 (defun expand-funcall (expr)
   "Expand EXPR as a function call. This returns EXPR with (EXPAND-EXPR E T)
 called on all the items E in EXPR except for the first one."
-  (cons (first expr) (loop for e in (rest expr)
-                           collect (expand-expr e t))))
+  (cons (first expr) (expand-exprs (rest expr) t)))
+
+(defun expand-block (expr)
+  (destructuring-bind (op name . forms) expr
+    `(,op ,name ,@(expand-exprs forms t))))
+
+(defun expand-decl-body (expr)
+  (multiple-value-bind (exprs tail)
+      (loop for tail on expr
+            for e = (first tail)
+            while (and (consp e) (eq (car e) 'declare))
+            collect e into exprs
+            finally (return (values exprs tail)))
+    (nconc exprs (expand-exprs tail t))))
+
+(defun expand-binding (binding)
+  (if (consp binding)
+      (destructuring-bind (head . tail) binding
+        (if (consp tail)
+            (destructuring-bind (expr . tail) tail
+              `(,head ,(expand-expr expr t) ,@tail))
+            binding))
+      binding))
+
+(defun expand-lambda-list (lambda-list)
+  (loop with expander = #'identity
+        for binding in lambda-list
+        if (member binding '(&optional &key))
+          do (setf expander #'expand-binding)
+        else if (eq binding '&rest)
+          do (setf expander #'identity)
+        collect (funcall expander binding)))
+
+(defun expand-flet (expr)
+  (destructuring-bind (op definitions . body) expr
+    (let ((definitions (loop for (name lambda-list . body) in definitions
+                             collect `(,name
+                                       ,(expand-lambda-list lambda-list)
+                                       ,@(expand-decl-body body)))))
+      `(,op
+        ,definitions
+        ,@(with-functions (mapcar #'first definitions)
+            (expand-decl-body body))))))
+
+(defun expand-labels (expr)
+  (destructuring-bind (op definitions . body) expr
+    (with-functions (mapcar #'first definitions)
+      `(,op
+        ,(loop for (name lambda-list . body) in definitions
+               collect `(,name
+                         ,(expand-lambda-list lambda-list)
+                         ,@(expand-decl-body body)))
+        ,@(expand-decl-body body)))))
+
+(defun expand-let (expr)
+  (destructuring-bind (op bindings . body) expr
+    `(,op
+      ,(mapcar #'expand-binding bindings)
+      ,@(expand-decl-body body))))
+
+(defun expand-locally (expr)
+  (destructuring-bind (op . body) expr
+    `(,op ,@(expand-decl-body body))))
+
+(defun expand-setq (expr)
+  (destructuring-bind (op . things) expr
+    `(,op
+      ,@(loop for expand = nil then (not expand)
+              for x in things
+              if expand
+                collect (expand-expr x t)
+              else
+                collect x))))
+
+(defun expand-tagbody (expr)
+  (destructuring-bind (op . statements) expr
+    `(,op
+      ,@(mapcar (lambda (s)
+                  (typecase s
+                    ((or integer symbol) s)
+                    (t (expand-expr s t))))
+                statements))))
+
+(defparameter *special-form-table*
+  (alist-hash-table `((block . ,#'expand-block)
+                      (catch . ,#'expand-funcall)
+                      (eval-when . ,#'expand-block)
+                      (flet . ,#'expand-flet)
+                      (function . ,#'identity)
+                      (go . ,#'identity)
+                      (if . ,#'expand-funcall)
+                      (labels . ,#'expand-labels)
+                      (let . ,#'expand-let)
+                      (let* . ,#'expand-let)
+                      (load-time-value . ,#'identity)
+                      (locally . ,#'expand-locally)
+                      (macrolet . ,#'identity)
+                      (multiple-value-call . ,#'expand-funcall)
+                      (multiple-value-prog1 . ,#'expand-funcall)
+                      (progn . ,#'expand-funcall)
+                      (progv . ,#'expand-funcall)
+                      (quote . ,#'identity)
+                      (return-from . ,#'expand-block)
+                      (setq . ,#'expand-setq)
+                      (symbol-macrolet . ,#'identity)
+                      (tagbody . ,#'expand-tagbody)
+                      (the . ,#'expand-block)
+                      (throw . ,#'expand-funcall)
+                      (unwind-protect . ,#'expand-funcall))))
+
+(defun expand-special-form (expr)
+  "Expand EXPR in the case that it is a special form."
+  (funcall (gethash (first expr) *special-form-table*) expr))
+
+(defun function-type (name)
+  "Determine whether NAME names a function, macro, or special operator."
+  (cond
+    ((special-operator-p name) 'special-operator)
+    ((macro-function name) 'macro)
+    (t 'function)))
 
 (defun expand-expr (expr &optional (expand-funcall nil))
   "Recursively translate EXPR from infix to prefix form."
   (cond
     ((atom expr) expr)
     ((member-if #'+or-p expr) (expand+ expr))
-    ((and expand-funcall (funcall-p expr)) (expand-funcall expr))
+    ((and expand-funcall (funcall-p expr))
+     (case (function-type (first expr))
+       (function (expand-funcall expr))
+       (macro (expand-expr (macroexpand expr) expand-funcall))
+       (special-operator (expand-special-form expr))))
     ((list-of-length-p expr 1) (expand-expr (first expr) t))
     (t (expand* expr))))
 
