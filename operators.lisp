@@ -763,7 +763,7 @@ do (i.e., either POLYNOMIAL or CONSTRAINT don't contain MONOMIAL)."
                   (progn
                     (remove-monomial monomial polynomial)
                     (do-polynomial (cp mp constraint)
-                      (unless (equalp mp monomial)
+                      (unless (monomial= mp monomial)
                         (decf (coeff mp polynomial) (* cp x/c))))
                     polynomial))))))))
 

@@ -173,16 +173,24 @@ EQUALITY) and returns the new hash table with MONOMIAL eliminated."
 table of MOMENT-MATRICES. Returns the modified OBJECTIVE polynomial and
 MOMENT-MATRICES table with INEQUALITIES merged in. This function is
 destructive: all the arguments are modified."
-  (loop while equalities
-        do (multiple-value-bind (mmax max-equality remaining-equalities)
-               (find-max-monomial equalities)
-             (setf equalities remaining-equalities)
-             (substitute-monomial mmax objective max-equality)
-             (dolist (ineq inequalities)
-               (substitute-monomial mmax ineq max-equality))
-             (substitute-equality max-equality mmax moment-matrices)
-             (dolist (e equalities)
-               (substitute-monomial mmax e max-equality))))
+  (flet ((remove-zeros ()
+           (setf equalities (remove-if #'zero-polynomial-p equalities))))
+    (remove-zeros)
+    (loop while equalities
+          do (multiple-value-bind (mmax max-equality remaining-equalities)
+                 (find-max-monomial equalities)
+               (setf equalities remaining-equalities)
+               (when (monomial= mmax *Id*)
+                 (error "Can't substitute ~s = 0.~%This probably means ~
+                         there are contradictory equality constraints."
+                        max-equality))
+               (substitute-monomial mmax objective max-equality)
+               (dolist (ineq inequalities)
+                 (substitute-monomial mmax ineq max-equality))
+               (substitute-equality max-equality mmax moment-matrices)
+               (dolist (e equalities)
+                 (substitute-monomial mmax e max-equality))
+               (remove-zeros))))
   (loop for b upfrom 2
         for ineq in inequalities
         do (do-polynomial (c mon ineq)
@@ -243,7 +251,7 @@ problem unless the optional argument MAXIMISE is non-nil."
                  &optional (equalities ()) (inequalities ()) (maximise nil))
   "Maximise or minimise OBJECTIVE subject to the list of EQUALITIES and
 INEQUALITIES at given LEVEL of the NPA hierarchy."
-  (solve (npa->sdp objective level equalities inequalities maximise)))
+  (npa-solve (npa->sdp objective level equalities inequalities maximise)))
 
 (defun maximise (objective level &optional (equalities ()) (inequalities ()))
   "Maximise polynomial OBJECTIVE at given LEVEL of the NPA hierarchy subject
