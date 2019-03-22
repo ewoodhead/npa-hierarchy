@@ -56,11 +56,21 @@ LIST. This allows them to have their own PRINT-OBJECT method."))
 (defparameter *id* (make-monomial)
   "Monomial representing the identity.")
 
+(declaim (type (integer 0 *) *default-output* *default-input*))
+
 (defvar *default-output* 1
   "Default output number to use.")
 
 (defvar *default-input* 1
   "Default input number to use.")
+
+(defparameter *scenario* (vector)
+  "Vector of vectors describing the scenario.")
+
+(declaim (ftype function polynomial))
+
+(defun make-projector (site output input)
+  (make-monomial (list (list site (cons output input)))))
 
 (defun projector (&optional site output-or-input input)
   "Create a monomial object representing the identity or a single projector.
@@ -76,25 +86,50 @@ number."
                                   input *default-input*))
     ((null input) (setf input output-or-input
                         output-or-input *default-output*)))
-  (make-monomial (list (list site (cons output-or-input input)))))
+  (if (>= site (length *scenario*))
+      (make-projector site output-or-input input)
+      (let ((noutputs (aref *scenario* site)))
+        (flet ((modfrom (min n mod)
+                 (+ min (mod (- n min) mod))))
+          (setf input (modfrom *default-input* input (length noutputs))
+                noutputs (aref noutputs (- input *default-input*))
+                output-or-input (modfrom *default-output*
+                                         output-or-input
+                                         noutputs)))
+        (let ((max-output (1- (+ *default-output* noutputs))))
+          (if (= output-or-input max-output)
+              (loop with p = (polynomial *Id*)
+                    for c from *default-output* below max-output
+                    do (setf (coeff (make-projector site c input) p) -1)
+                    finally (return p))
+              (make-projector site output-or-input input))))))
 
-(defun probability (&rest outputs-and-inputs)
-  "Construct the monomial corresponding to the probability at the lowest
-numbered sites for given outputs and inputs. The outputs should be listed
-first, followed by the inputs. For example, (PROBABILITY 1 2 3 4) returns the
-monomial A1|3 B2|4."
-  (let ((len (list-length outputs-and-inputs)))
-    (if (evenp len)
-        (make-monomial
-         (loop with nsites = (/ len 2)
-               for x in (nthcdr nsites outputs-and-inputs)
-               for outputs = outputs-and-inputs then (rest outputs)
-               for a = (first outputs)
-               for site upfrom 0
-               collect (list site (cons a x))))
-        (error "Even number of arguments expected."))))
+(defun scenario (numbers-of-outputs)
+  (let ((scenario (make-array (list-length numbers-of-outputs)
+                              :element-type 'simple-vector
+                              :adjustable nil)))
+    (loop for site upfrom 0
+          for noutputs in numbers-of-outputs
+          do (setf (aref scenario site)
+                   (make-array (list-length noutputs)
+                               :element-type '(integer 0 *)
+                               :initial-contents noutputs)))
+    scenario))
 
-(setf (symbol-function 'p) #'probability)
+(defun set-scenario (&rest numbers-of-outputs)
+  (setf *scenario* (scenario numbers-of-outputs)))
+
+(defun clear-scenario ()
+  (setf *scenario* (scenario ())))
+
+(defmacro with-scenario ((&rest numbers-of-outputs) &body body)
+  `(let ((*scenario* (scenario
+                      (list ,@(mapcar (lambda (x)
+                                        (cond
+                                          ((consp x) `(list ,@x))
+                                          (t x)))
+                                      numbers-of-outputs)))))
+     ,@body))
 
 (declaim (ftype function char-ord))
 (declaim (special *alphabet*)
@@ -731,6 +766,23 @@ starting with initial value INIT."
                ((>= ,var ,below) ,result)
              (setf ,result (,fname ,result ,expr))))))))
 
+(defun probability (&rest outputs-and-inputs)
+  "Construct the monomial corresponding to the probability at the lowest
+numbered sites for given outputs and inputs. The outputs should be listed
+first, followed by the inputs. For example, (PROBABILITY 1 2 3 4) returns the
+monomial A1|3 B2|4."
+  (let ((len (list-length outputs-and-inputs)))
+    (if (evenp len)
+        (loop with nsites = (/ len 2)
+              for x in (nthcdr nsites outputs-and-inputs)
+              for outputs = outputs-and-inputs then (rest outputs)
+              for a = (first outputs)
+              for site upfrom 0
+              for p = (projector site a x)
+                then (2arg* p (projector site a x))
+              finally (return p))
+        (error "Even number of arguments expected."))))
+
 (defmacro psum ((var start-or-below &optional below) &body expr)
   "Return the sum of repeated evaluations of EXPR with VAR bound to integers
 in the given range. The range is from 0 below (not including) START-OR-BELOW
@@ -998,6 +1050,22 @@ returned."
 value of the last form in BODY is returned."
   `(let ,(loop for s in symbols collect `(,s (operator ',s)))
      ,@body))
+
+(defmacro with-projectors ((&rest site-names) &body body)
+  (with-gensyms (c z)
+    `(flet (,@(mapcar (lambda (s)
+                       `(,s
+                         (,c ,z)
+                         (projector ,(string->site (string s)) ,c ,z)))
+                      site-names))
+       ,@body)))
+
+(defmacro with-diops ((&rest site-names) &body body)
+  (with-gensyms (z)
+    `(flet (,@(mapcar (lambda (s)
+                        `(,s (,z) (diop ,(string->site (string s)) ,z)))
+                      site-names))
+       ,@body)))
 
 (defun symbol-string= (x y)
   "Return T if X and Y are either symbols, strings, or characters and they

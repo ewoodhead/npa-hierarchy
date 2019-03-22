@@ -284,6 +284,9 @@ to zero or more EQUALITIES and INEQUALITIES."
 (defun level-form (forms)
   (find-form forms "LEVEL"))
 
+(defun scenario-form (forms)
+  (find-form forms "SCENARIO"))
+
 (defun get-objective (forms)
   (if-let (objective (maximise-form forms))
     (values (expand-expr objective) t)
@@ -330,22 +333,29 @@ or polynomial >= 0."
     bindings))
 
 (defmacro problem (&rest forms)
-  (multiple-value-bind (objective maximise) (get-objective forms)
-    (when (null objective) (error "Objective missing"))    
-    (multiple-value-bind (equalities inequalities)
-         (get-constraints (subject-to-form forms))
-      (let ((definitions (get-definitions (where-form forms)))
-            (level (level-form forms)))
-        (when (null level) (error "Hierarchy level missing"))
-        `(let ,(operator-names-and-values
-                (list objective equalities (mapcar #'rest definitions))
-                (mapcar #'first definitions))
-           (let* ,definitions
-             (npa->sdp ,objective
-                       ',level
-                       (list ,@equalities)
-                       (list ,@inequalities)
-                       ,maximise)))))))
+  (let ((invocation
+         (multiple-value-bind (objective maximise) (get-objective forms)
+           (when (null objective) (error "Objective missing"))    
+           (multiple-value-bind (equalities inequalities)
+               (get-constraints (subject-to-form forms))
+             (let ((definitions (get-definitions (where-form forms)))
+                   (level (level-form forms)))
+               (when (null level)
+                 (error "Hierarchy level missing"))
+               `(let ,(operator-names-and-values
+                       (list objective equalities
+                             (mapcar #'rest definitions))
+                       (mapcar #'first definitions))
+                  (let* ,definitions
+                    (npa->sdp ,objective
+                              ',level
+                              (list ,@equalities)
+                              (list ,@inequalities)
+                              ,maximise))))))))
+    (if-let (scenario (scenario-form forms))
+      `(with-scenario (,@scenario)
+         ,invocation)
+      invocation)))
 
 (defun monomials->alist (monomials values)
   (mapcar (lambda (m x)

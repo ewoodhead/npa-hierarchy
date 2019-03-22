@@ -10,9 +10,10 @@
   (:import-from :alexandria :alist-hash-table
                 :with-gensyms :once-only :if-let :when-let
                 :hash-table-keys :sequence-of-length-p)
-  (:export :monomial :monomial-p :projector :probability :p
+  (:export :monomial :monomial-p
+           :*id* :*default-input* :*default-output* :*scenario*
+           :projector :set-scenario :clear-scenario :with-scenario
            :monomial-hash-table
-           :*id* :*default-input* :*default-output*
            :order :monomial= :monomial/=
            :monomial< :monomial> :monomial<= :monomial>=
            :monomial-max :monomial-min
@@ -24,14 +25,14 @@
            :terms :zero-polynomial-p :max-monomial
            :conj :conj-min :c*
            :scale :increment :decrement :p* :p+ :p- :pexpt
-           :psum :pprod
+           :probability :psum :pprod
            :substitute-monomial :diop
            :set-add :set-merge :monomial-set :set*
            :*alphabet* :site->string :string->site
            :write-monomial :monomial-string
            :write-polynomial :polynomial-string
            :operator-names-and-values
-           :operator :with-operators
+           :operator :with-operators :with-projectors :with-diops
            :expand-expr :infix :auto-operators :px
            :pmod :dmod :chsh :mermin :klyshko :cglmp))
 

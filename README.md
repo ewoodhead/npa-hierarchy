@@ -287,11 +287,12 @@ The general format understood by the `solve-problem` macro is
  (subject-to CONSTRAINTS...)
  (where LOCAL-VARIABLE-BINDINGS...)
  (level LEVEL)
+ (scenario SCENARIO...)
  (name NAME))
 ```
 Each of the forms should be surrounded with parentheses, as shown, and they
 can appear in any order. The `*imise` and `level` forms are required. The
-other three are optional. An example using all of them is
+other four are optional. An example using most of them is
 ```
 (solve-problem
  (maximise A1/1)
@@ -373,8 +374,55 @@ output file names (for example, `"pguess.dat-s"` and `"pguess.out"`); it will
 also assume it is fine to overwrite these files if they already exist and it
 won't delete them afterwards.
 
-Problems can involve more than two parties, inputs, and outputs. For example,
-the three-party Mermin expression can be maximised like this:
+The `scenario` form lets you explicitly constrain the scenario. Its arguments
+should be lists of the numbers of outputs each of the parties' inputs have,
+starting with Alice's. For example,
+```
+ (scenario (3 4) (2 2 2))
+```
+
+indicates that Alice has two inputs, with three and four outputs, and Bob has
+three inputs, each with two outputs. Specifying a scenario has two effects:
+- Output and input numbers are forced to cycle in a limited range, starting
+  with 1 by default. For example, with the above scenario, the projectors
+  `A4/1`, `A5/3`, and `B3/10` would be changed to `A1/1`, `A2/2`, and
+  `B1/1`. (The starting output and input numbers used are determined by the
+  values of global variables `*default-output*` and `*default-input*`. They
+  are set to one by default, but can be changed if you prefer zero-based
+  numbering.)
+- The projector with the highest-numbered output in the scenario is then
+  changed to the identity minus all the other projectors. For example. `A3/1`
+  would be replaced with `(Id - A1/1 - A2/1)`.
+
+The main reason you might want to specify the scenario is if expressing the
+problem in the Collins-Gisin projection is inconvenient and you want to
+explicitly use all the projectors. A macro, `with-scenario` is also provided
+that lets you locally specify the scenario when running code. It may be
+useful to help understand the effect that setting the scenario has if you're
+in doubt:
+```
+NPA-USER> (values (px A4/1)
+                  (px A6/4)
+                  (px B1/1 + B2/1 + B3/1)
+                  (px B1/2 + B2/2))
+#<A4|1>
+#<A6|4>
+#<POLYNOMIAL B1|1 + B2|1 + B3|1>
+#<POLYNOMIAL B1|2 + B2|2>
+NPA-USER> (with-scenario ((4 4) (3 2))
+            (values (px A4/1)
+                    (px A6/4)
+                    (px B1/1 + B2/1 + B3/1)
+                    (px B1/2 + B2/2)))
+#<POLYNOMIAL Id - A1|1 - A2|1 - A3|1>
+#<A2|2>
+#<POLYNOMIAL Id>
+#<POLYNOMIAL Id>
+```
+
+As the notation would suggest, problems can involve more than two parties,
+inputs, and outputs. For example, the three-party Mermin expression can be
+maximised like this:
 ```
 (solve-problem
  (maximise A1 B1 C1 - A1 B2 C2 - A2 B1 C2 - A2 B2 C1)
@@ -397,6 +445,7 @@ CGLMP with three outputs:
            - 3 A2/2 (B2/1 - B2/2))
  (level 1 + A B))
 ```
+
 There are a few functions included that return families of Bell operators
 (currently CGLMP, Mermin, and Bell-Klyshko). Thus the maximisation of CGLMP
 could have been done with
