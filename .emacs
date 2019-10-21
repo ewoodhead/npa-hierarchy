@@ -12,6 +12,8 @@
              '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 (package-initialize)
 
+(when (null package-archive-contents)
+  (package-refresh-contents))
 
 ;; Check if packages are installed and install them if necessary.
 
@@ -53,11 +55,6 @@
             (define-key ielm-map
               (kbd "<return>")
               #'ielm-return-at-end)))
-
-
-;;; Default browser.
-
-(setq browse-url-browser-function #'w3m-browse-url)
 
 
 ;;; SLIME
@@ -108,9 +105,11 @@
 (autoload 'enable-paredit-mode "paredit"
   "Turn on pseudo-structural editing of Lisp code." t)
 
-(add-hook 'emacs-lisp-mode-hook       #'enable-paredit-mode)
-(add-hook 'eval-expression-minibuffer-setup-hook #'enable-paredit-mode)
-(add-hook 'ielm-mode-hook             #'enable-paredit-mode)
-(add-hook 'lisp-mode-hook             #'enable-paredit-mode)
-(add-hook 'slime-repl-mode-hook (lambda () (paredit-mode +1)))
-(add-hook 'lisp-interaction-mode-hook #'enable-paredit-mode)
+(let ((hooks '(emacs-lisp-mode-hook
+               eval-expression-minibuffer-setup-hook
+               ielm-mode-hook
+               lisp-mode-hook
+               slime-repl-mode-hook
+               lisp-interaction-mode-hook)))
+  (dolist (h hooks)
+    (add-hook h #'enable-paredit-mode)))

@@ -14,8 +14,7 @@ and inequality constraints on the expectation values of such operators. The
 number of parties, inputs, and outputs is arbitrary. It works with the [SDPA
 family](http://sdpa.sourceforge.net/) of semidefinite programming solvers.
 
-It is written in Common Lisp (currently, specifically the SBCL
-implementation), but you don't necessarily have to know Lisp in order to use
+It is written in Common Lisp (currently, specifically the SBCL implementation), but you don't necessarily have to know Lisp in order to use
 it. It supports a notation similar to what you might see in a research
 paper. For example, the code you need to type to maximise CHSH at level 1 + A
 B of the hierarchy is
@@ -630,13 +629,13 @@ objective and constraints. For example, an SDPA input file for the CGLMP
 expression could be generated more simply by running
 ```
 (export-to-file "cglmp3.dat-s"
-                (npa->sdp (cglmp 3) () '(1 + A B) t))
+                (npa->sdp (cglmp 3) '(1 + A B) () () t))
 ```
 using the `cglmp` function already included in the library. In the call to
-`npa->sdp` above, the second parameter is an (in this case, empty) list of
-constraints (polynomials whose expectation values we want to set to zero) and
-the fourth, `t`, indicates we want to maximise the expectation value of the
-objective polynomial.
+`npa->sdp` above, the third and fourth parameters are (in this case, empty)
+lists of constraints (polynomials whose expectation values we want to set to
+or lower bound by zero) and the fifth, `t`, indicates we want to maximise the
+expectation value of the objective polynomial.
 
 It is possible to run SDPA from Lisp itself, if you want to do this for some
 reason. The function `run-sdpa` will run SDPA with specified input and output
@@ -660,7 +659,7 @@ variable `*return-expectation-values*` to true:
 ```
 This will cause the `solve-problem` macro and optimisation functions like
 `maximise` to return an association list of monomials and their expectation
-values as a fourth return values. An example, maximising CHSH at level one,
+values as a fourth return value. An example, maximising CHSH at level one,
 now looks like this:
 ```
 NPA-USER> (solve-problem
